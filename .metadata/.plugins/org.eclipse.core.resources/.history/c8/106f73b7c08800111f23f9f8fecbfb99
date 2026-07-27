@@ -1,0 +1,131 @@
+// service/impl/DashboardServiceImpl.java
+package com.hrms.service.impl;
+
+import com.hrms.dto.response.DashboardResponse;
+import com.hrms.model.Attendance;
+import com.hrms.model.Employee;
+import com.hrms.model.Leave;
+import com.hrms.repository.*;
+import com.hrms.service.AttendanceService;
+import com.hrms.service.DashboardService;
+import com.hrms.service.LeaveService;
+import com.hrms.service.PayrollService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class DashboardServiceImpl implements DashboardService {
+
+    private final EmployeeRepository employeeRepository;
+    private final DepartmentRepository departmentRepository;
+    private final AttendanceRepository attendanceRepository;
+    private final LeaveRepository leaveRepository;
+    private final PayrollRepository payrollRepository;
+    private final AttendanceService attendanceService;
+    private final LeaveService leaveService;
+    private final PayrollService payrollService;
+
+    @Override
+    public DashboardResponse getAdminDashboard() {
+        LocalDate today = LocalDate.now();
+        int month = today.getMonthValue();
+        int year = today.getYear();
+
+        // ✅ Use countActiveEmployees query
+        long totalEmp = employeeRepository.count();
+        long activeEmp = employeeRepository.countActiveEmployees();
+        long totalDept = departmentRepository.count();
+        long presentToday = attendanceRepository.countPresentToday(today);
+        long pendingLeaves = leaveRepository.countByStatus(Leave.Status.PENDING);
+
+        BigDecimal totalPayroll = payrollRepository
+                .sumNetSalaryByMonthAndYear(month, year);
+        if (totalPayroll == null) totalPayroll = BigDecimal.ZERO;
+
+        // Department wise employees
+        List<Map<String, Object>> deptData = new ArrayList<>();
+        departmentRepository.findAll().forEach(dept -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", dept.getName());
+            map.put("count", dept.getEmployees() != null ?
+                    (long) dept.getEmployees().size() : 0);
+            deptData.add(map);
+        });
+
+        // Leave stats
+        List<Map<String, Object>> leaveStats = new ArrayList<>();
+
+        Map<String, Object> pending = new HashMap<>();
+        pending.put("name", "Pending");
+        pending.put("value", pendingLeaves);
+
+        Map<String, Object> approved = new HashMap<>();
+        approved.put("name", "Approved");
+        approved.put("value",
+                leaveRepository.countByStatus(Leave.Status.APPROVED));
+
+        Map<String, Object> rejected = new HashMap<>();
+        rejected.put("name", "Rejected");
+        rejected.put("value",
+                leaveRepository.countByStatus(Leave.Status.REJECTED));
+
+        leaveStats.add(pending);
+        leaveStats.add(approved);
+        leaveStats.add(rejected);
+
+        return DashboardResponse.builder()
+                .totalEmployees(totalEmp)
+                .activeEmployees(activeEmp)
+                .totalDepartments(totalDept)
+                .presentToday(presentToday)
+                .pendingLeaves(pendingLeaves)
+                .totalPayrollThisMonth(totalPayroll)
+                .departmentWiseEmployees(deptData)
+                .leaveStatusStats(leaveStats)
+                .build();
+    }
+
+    @Override
+    public DashboardResponse getEmployeeDashboard(Long employeeId) {
+        LocalDate today = LocalDate.now();
+        int month = today.getMonthValue();
+        int year = today.getYear();
+
+        long presentDays = attendanceRepository
+                .countByEmployeeAndStatusAndMonthAndYear(
+                        employeeId, Attendance.Status.PRESENT, month, year);
+        long absentDays = attendanceRepository
+                .countByEmployeeAndStatusAndMonthAndYear(
+                        employeeId, Attendance.Status.ABSENT, month, year);
+        long myPendingLeaves = leaveRepository
+                .countByEmployeeAndStatus(employeeId, Leave.Status.PENDING);
+        long myApprovedLeaves = leaveRepository
+                .countByEmployeeAndStatus(employeeId, Leave.Status.APPROVED);
+
+        var recentLeaves = leaveService.getLeavesByEmployee(employeeId)
+                .stream().limit(5).toList();
+        var recentAttendance = attendanceService
+                .getAttendanceByEmployee(employeeId)
+                .stream().limit(7).toList();
+
+        var payrolls = payrollService.getPayrollByEmployee(employeeId);
+        var latestPayroll = payrolls.isEmpty() ? null : payrolls.get(0);
+
+        return DashboardResponse.builder()
+                .myPresentDays(presentDays)
+                .myAbsentDays(absentDays)
+                .myPendingLeaves(myPendingLeaves)
+                .myApprovedLeaves(myApprovedLeaves)
+                .recentLeaves(recentLeaves)
+                .recentAttendance(recentAttendance)
+                .latestPayroll(latestPayroll)
+                .build();
+    }
+}

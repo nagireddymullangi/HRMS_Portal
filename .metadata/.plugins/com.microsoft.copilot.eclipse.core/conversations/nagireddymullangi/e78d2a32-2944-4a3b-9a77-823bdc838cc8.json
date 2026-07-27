@@ -1,0 +1,48 @@
+{
+  "conversationId": "e78d2a32-2944-4a3b-9a77-823bdc838cc8",
+  "title": "Explain the following HQL query with a clear summa...",
+  "requesterUsername": "nagireddymullangi",
+  "responderUsername": "GitHub Copilot",
+  "turns": [
+    {
+      "message": {
+        "text": "Explain the following HQL query with a clear summary first, followed by a detailed explanation. If the query contains any SpEL expressions, explain those parts as well: \n\n@Query(\"SELECT d, COUNT(e) FROM Department d LEFT JOIN d.employees e GROUP BY d\")\n\n"
+      },
+      "currentDocument": {
+        "uri": "/hrms-backend/src/main/java/com/hrms/repository/DepartmentRepository.java"
+      },
+      "references": [],
+      "ignoredSkills": [],
+      "userLanguage": "en",
+      "source": "panel",
+      "model": "Auto",
+      "chatMode": "Agent",
+      "customChatModeId": "Agent",
+      "needToolCallConfirmation": true,
+      "turnId": "319ac96f-679d-4866-9d95-5716a3a3255e",
+      "role": "user",
+      "timestamp": "2026-07-25T05:29:48.464672700Z"
+    },
+    {
+      "reply": {
+        "annotations": [],
+        "references": [],
+        "hideText": false,
+        "notifications": [],
+        "followups": [],
+        "errorMessages": [],
+        "editAgentRounds": [],
+        "panelMessages": [],
+        "steps": [],
+        "agentMessages": [],
+        "data": {},
+        "billingMultiplier": 0.0
+      },
+      "turnId": "7fb6103c-ff7a-4caa-b757-5f111a6afe6d",
+      "role": "copilot",
+      "timestamp": "2026-07-25T05:29:50.301946500Z"
+    }
+  ],
+  "creationDate": "2026-07-25T05:29:48.150970300Z",
+  "lastMessageDate": "2026-07-25T05:29:50.297950500Z"
+}

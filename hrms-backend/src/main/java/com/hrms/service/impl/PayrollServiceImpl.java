@@ -1,0 +1,222 @@
+
+//service/impl/PayrollServiceImpl.java
+package com.hrms.service.impl;
+
+import com.hrms.dto.request.PayrollRequest;
+import com.hrms.dto.response.PayrollResponse;
+import com.hrms.exception.HrmsAPIException;
+import com.hrms.exception.ResourceNotFoundException;
+import com.hrms.model.Employee;
+import com.hrms.model.Payroll;
+import com.hrms.repository.AttendanceRepository;
+import com.hrms.repository.EmployeeRepository;
+import com.hrms.repository.PayrollRepository;
+import com.hrms.service.PayrollService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class PayrollServiceImpl implements PayrollService {
+
+ private final PayrollRepository payrollRepository;
+ private final EmployeeRepository employeeRepository;
+ private final AttendanceRepository attendanceRepository;
+
+ @Override
+ @Transactional
+ public PayrollResponse generatePayroll(PayrollRequest request) {
+     if (payrollRepository.existsByEmployeeIdAndMonthAndYear(
+             request.getEmployeeId(), request.getMonth(), request.getYear())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+                 "Payroll already generated for this month and year");
+     }
+
+     Employee employee = employeeRepository.findById(request.getEmployeeId())
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Employee", "id", request.getEmployeeId()));
+
+     // Calculate working & present days
+     int workingDays = YearMonth.of(request.getYear(),
+             request.getMonth()).lengthOfMonth();
+     long presentDays = attendanceRepository
+             .countByEmployeeAndStatusAndMonthAndYear(
+                     request.getEmployeeId(),
+                     com.hrms.model.Attendance.Status.PRESENT,
+                     request.getMonth(), request.getYear());
+
+     BigDecimal basic = request.getBasicSalary() != null ?
+             request.getBasicSalary() : BigDecimal.valueOf(30000);
+     BigDecimal hra = request.getHra() != null ?
+             request.getHra() : basic.multiply(BigDecimal.valueOf(0.4));
+     BigDecimal transport = request.getTransportAllowance() != null ?
+             request.getTransportAllowance() : BigDecimal.valueOf(2000);
+     BigDecimal medical = request.getMedicalAllowance() != null ?
+             request.getMedicalAllowance() : BigDecimal.valueOf(1500);
+     BigDecimal others = request.getOtherAllowances() != null ?
+             request.getOtherAllowances() : BigDecimal.ZERO;
+
+     BigDecimal gross = basic.add(hra).add(transport)
+             .add(medical).add(others);
+
+     BigDecimal pf = request.getPfDeduction() != null ?
+             request.getPfDeduction() :
+             basic.multiply(BigDecimal.valueOf(0.12));
+     BigDecimal tax = request.getTaxDeduction() != null ?
+             request.getTaxDeduction() :
+             gross.multiply(BigDecimal.valueOf(0.1));
+     BigDecimal otherDed = request.getOtherDeductions() != null ?
+             request.getOtherDeductions() : BigDecimal.ZERO;
+
+     BigDecimal totalDed = pf.add(tax).add(otherDed);
+     BigDecimal net = gross.subtract(totalDed);
+
+     Payroll payroll = Payroll.builder()
+             .employee(employee)
+             .month(request.getMonth())
+             .year(request.getYear())
+             .basicSalary(basic)
+             .hra(hra)
+             .transportAllowance(transport)
+             .medicalAllowance(medical)
+             .otherAllowances(others)
+             .grossSalary(gross)
+             .pfDeduction(pf)
+             .taxDeduction(tax)
+             .otherDeductions(otherDed)
+             .totalDeductions(totalDed)
+             .netSalary(net)
+             .workingDays(workingDays)
+             .presentDays((int) presentDays)
+             .status(Payroll.Status.GENERATED)
+             .build();
+
+     return mapToResponse(payrollRepository.save(payroll));
+ }
+
+ @Override
+ public PayrollResponse getPayrollById(Long id) {
+     return mapToResponse(payrollRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Payroll", "id", id)));
+ }
+
+ @Override
+ public List<PayrollResponse> getPayrollByEmployee(Long employeeId) {
+     return payrollRepository
+             .findByEmployeeIdOrderByYearDescMonthDesc(employeeId)
+             .stream().map(this::mapToResponse).collect(Collectors.toList());
+ }
+
+ @Override
+ public List<PayrollResponse> getAllPayroll() {
+     return payrollRepository.findAllByOrderByYearDescMonthDesc()
+             .stream().map(this::mapToResponse).collect(Collectors.toList());
+ }
+
+ @Override
+ public List<PayrollResponse> getPayrollByMonthAndYear(int month, int year) {
+     return payrollRepository.findByMonthAndYearOrderByEmployeeFirstNameAsc(
+             month, year)
+             .stream().map(this::mapToResponse).collect(Collectors.toList());
+ }
+
+ @Override
+ @Transactional
+ public PayrollResponse updatePayroll(Long id, PayrollRequest request) {
+     Payroll payroll = payrollRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Payroll", "id", id));
+
+     if (request.getBasicSalary() != null)
+         payroll.setBasicSalary(request.getBasicSalary());
+     if (request.getHra() != null) payroll.setHra(request.getHra());
+     if (request.getTransportAllowance() != null)
+         payroll.setTransportAllowance(request.getTransportAllowance());
+     if (request.getMedicalAllowance() != null)
+         payroll.setMedicalAllowance(request.getMedicalAllowance());
+     if (request.getOtherAllowances() != null)
+         payroll.setOtherAllowances(request.getOtherAllowances());
+     if (request.getPfDeduction() != null)
+         payroll.setPfDeduction(request.getPfDeduction());
+     if (request.getTaxDeduction() != null)
+         payroll.setTaxDeduction(request.getTaxDeduction());
+     if (request.getOtherDeductions() != null)
+         payroll.setOtherDeductions(request.getOtherDeductions());
+
+     BigDecimal gross = payroll.getBasicSalary()
+             .add(payroll.getHra())
+             .add(payroll.getTransportAllowance())
+             .add(payroll.getMedicalAllowance())
+             .add(payroll.getOtherAllowances());
+     BigDecimal totalDed = payroll.getPfDeduction()
+             .add(payroll.getTaxDeduction())
+             .add(payroll.getOtherDeductions());
+
+     payroll.setGrossSalary(gross);
+     payroll.setTotalDeductions(totalDed);
+     payroll.setNetSalary(gross.subtract(totalDed));
+
+     return mapToResponse(payrollRepository.save(payroll));
+ }
+
+ @Override
+ @Transactional
+ public PayrollResponse markAsPaid(Long id) {
+     Payroll payroll = payrollRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Payroll", "id", id));
+     payroll.setStatus(Payroll.Status.PAID);
+     payroll.setPaidAt(LocalDateTime.now());
+     return mapToResponse(payrollRepository.save(payroll));
+ }
+
+ @Override
+ @Transactional
+ public void deletePayroll(Long id) {
+     payrollRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Payroll", "id", id));
+     payrollRepository.deleteById(id);
+ }
+
+ private PayrollResponse mapToResponse(Payroll p) {
+     return PayrollResponse.builder()
+             .id(p.getId())
+             .employeeId(p.getEmployee().getId())
+             .employeeName(p.getEmployee().getFullName())
+             .employeeCode(p.getEmployee().getEmployeeId())
+             .departmentName(p.getEmployee().getDepartment() != null ?
+                     p.getEmployee().getDepartment().getName() : null)
+             .designation(p.getEmployee().getDesignation())
+             .month(p.getMonth())
+             .year(p.getYear())
+             .basicSalary(p.getBasicSalary())
+             .hra(p.getHra())
+             .transportAllowance(p.getTransportAllowance())
+             .medicalAllowance(p.getMedicalAllowance())
+             .otherAllowances(p.getOtherAllowances())
+             .grossSalary(p.getGrossSalary())
+             .pfDeduction(p.getPfDeduction())
+             .taxDeduction(p.getTaxDeduction())
+             .otherDeductions(p.getOtherDeductions())
+             .totalDeductions(p.getTotalDeductions())
+             .netSalary(p.getNetSalary())
+             .workingDays(p.getWorkingDays())
+             .presentDays(p.getPresentDays())
+             .status(p.getStatus().name())
+             .generatedAt(p.getGeneratedAt())
+             .paidAt(p.getPaidAt())
+             .build();
+ }
+}

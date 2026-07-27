@@ -1,0 +1,184 @@
+
+//service/impl/AttendanceServiceImpl.java
+package com.hrms.service.impl;
+
+import com.hrms.dto.request.AttendanceRequest;
+import com.hrms.dto.response.AttendanceResponse;
+import com.hrms.exception.HrmsAPIException;
+import com.hrms.exception.ResourceNotFoundException;
+import com.hrms.model.Attendance;
+import com.hrms.model.Employee;
+import com.hrms.repository.AttendanceRepository;
+import com.hrms.repository.EmployeeRepository;
+import com.hrms.service.AttendanceService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class AttendanceServiceImpl implements AttendanceService {
+
+ private final AttendanceRepository attendanceRepository;
+ private final EmployeeRepository employeeRepository;
+
+ @Override
+ @Transactional
+ public AttendanceResponse markAttendance(AttendanceRequest request) {
+     Employee employee = employeeRepository.findById(request.getEmployeeId())
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Employee", "id", request.getEmployeeId()));
+
+     if (attendanceRepository.existsByEmployeeIdAndDate(
+             request.getEmployeeId(), request.getDate())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+                 "Attendance already marked for this date");
+     }
+
+     Attendance.Status status = request.getStatus() != null ?
+             Attendance.Status.valueOf(request.getStatus()) :
+             Attendance.Status.PRESENT;
+
+     double workingHours = 0;
+     if (request.getCheckIn() != null && request.getCheckOut() != null) {
+         workingHours = calculateWorkingHours(
+                 request.getCheckIn(), request.getCheckOut());
+     }
+
+     Attendance attendance = Attendance.builder()
+             .employee(employee)
+             .date(request.getDate())
+             .checkIn(request.getCheckIn())
+             .checkOut(request.getCheckOut())
+             .status(status)
+             .workingHours(workingHours)
+             .notes(request.getNotes())
+             .build();
+
+     Attendance saved = attendanceRepository.save(attendance);
+     return mapToResponse(saved);
+ }
+
+ @Override
+ @Transactional
+ public AttendanceResponse updateAttendance(Long id, AttendanceRequest request) {
+     Attendance attendance = attendanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Attendance", "id", id));
+
+     if (request.getStatus() != null) {
+         attendance.setStatus(Attendance.Status.valueOf(request.getStatus()));
+     }
+     if (request.getCheckIn() != null) {
+         attendance.setCheckIn(request.getCheckIn());
+     }
+     if (request.getCheckOut() != null) {
+         attendance.setCheckOut(request.getCheckOut());
+     }
+     if (request.getNotes() != null) {
+         attendance.setNotes(request.getNotes());
+     }
+     if (attendance.getCheckIn() != null && attendance.getCheckOut() != null) {
+         attendance.setWorkingHours(calculateWorkingHours(
+                 attendance.getCheckIn(), attendance.getCheckOut()));
+     }
+
+     return mapToResponse(attendanceRepository.save(attendance));
+ }
+
+ @Override
+ public AttendanceResponse getAttendanceById(Long id) {
+     return mapToResponse(attendanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Attendance", "id", id)));
+ }
+
+ @Override
+ public List<AttendanceResponse> getAttendanceByEmployee(Long employeeId) {
+     return attendanceRepository.findByEmployeeIdOrderByDateDesc(employeeId)
+             .stream().map(this::mapToResponse).collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AttendanceResponse> getAttendanceByEmployeeAndDateRange(
+         Long employeeId, LocalDate start, LocalDate end) {
+     return attendanceRepository
+             .findByEmployeeIdAndDateBetweenOrderByDateDesc(
+                     employeeId, start, end)
+             .stream().map(this::mapToResponse).collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AttendanceResponse> getAllAttendanceByDate(LocalDate date) {
+     return attendanceRepository.findByDateOrderByEmployeeFirstNameAsc(date)
+             .stream().map(this::mapToResponse).collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AttendanceResponse> getAllAttendance() {
+     return attendanceRepository.findAll()
+             .stream().map(this::mapToResponse).collect(Collectors.toList());
+ }
+
+ @Override
+ public Map<String, Long> getAttendanceSummary(
+         Long employeeId, int month, int year) {
+     Map<String, Long> summary = new HashMap<>();
+     summary.put("present", attendanceRepository
+             .countByEmployeeAndStatusAndMonthAndYear(
+                     employeeId, Attendance.Status.PRESENT, month, year));
+     summary.put("absent", attendanceRepository
+             .countByEmployeeAndStatusAndMonthAndYear(
+                     employeeId, Attendance.Status.ABSENT, month, year));
+     summary.put("halfDay", attendanceRepository
+             .countByEmployeeAndStatusAndMonthAndYear(
+                     employeeId, Attendance.Status.HALF_DAY, month, year));
+     summary.put("onLeave", attendanceRepository
+             .countByEmployeeAndStatusAndMonthAndYear(
+                     employeeId, Attendance.Status.ON_LEAVE, month, year));
+     return summary;
+ }
+
+ @Override
+ @Transactional
+ public void deleteAttendance(Long id) {
+     attendanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Attendance", "id", id));
+     attendanceRepository.deleteById(id);
+ }
+
+ private double calculateWorkingHours(LocalTime checkIn, LocalTime checkOut) {
+     if (checkIn == null || checkOut == null) return 0;
+     long minutes = java.time.Duration.between(checkIn, checkOut).toMinutes();
+     return Math.max(0, minutes / 60.0);
+ }
+
+ public AttendanceResponse mapToResponse(Attendance a) {
+     return AttendanceResponse.builder()
+             .id(a.getId())
+             .employeeId(a.getEmployee().getId())
+             .employeeName(a.getEmployee().getFullName())
+             .employeeCode(a.getEmployee().getEmployeeId())
+             .departmentName(a.getEmployee().getDepartment() != null ?
+                     a.getEmployee().getDepartment().getName() : null)
+             .date(a.getDate())
+             .checkIn(a.getCheckIn())
+             .checkOut(a.getCheckOut())
+             .status(a.getStatus().name())
+             .workingHours(a.getWorkingHours())
+             .notes(a.getNotes())
+             .createdAt(a.getCreatedAt())
+             .build();
+ }
+}

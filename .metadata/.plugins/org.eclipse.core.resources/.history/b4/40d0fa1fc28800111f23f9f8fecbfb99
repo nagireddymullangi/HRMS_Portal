@@ -1,0 +1,110 @@
+
+//service/impl/DepartmentServiceImpl.java
+package com.hrms.service.impl;
+
+import com.hrms.dto.request.DepartmentRequest;
+import com.hrms.dto.response.DepartmentResponse;
+import com.hrms.exception.HrmsAPIException;
+import com.hrms.exception.ResourceNotFoundException;
+import com.hrms.model.Department;
+import com.hrms.repository.DepartmentRepository;
+import com.hrms.service.DepartmentService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+//import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class DepartmentServiceImpl implements DepartmentService {
+
+ private final DepartmentRepository departmentRepository;
+
+ @Override
+ @Transactional
+ public DepartmentResponse createDepartment(DepartmentRequest request) {
+     if (departmentRepository.existsByName(request.getName())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+                 "Department with name '" + request.getName() + "' already exists");
+     }
+     Department department = Department.builder()
+             .name(request.getName())
+             .description(request.getDescription())
+             .build();
+     Department saved = departmentRepository.save(department);
+     log.info("Department created: {}", saved.getName());
+     return mapToResponse(saved, 0L);
+ }
+
+ @Override
+ public DepartmentResponse getDepartmentById(Long id) {
+     Department dept = departmentRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Department", "id", id));
+     long empCount = dept.getEmployees() != null ?
+            (long) dept.getEmployees().size() : 0;
+     return mapToResponse(dept, empCount);
+ }
+
+ @Override
+ public List<DepartmentResponse> getAllDepartments() {
+     return departmentRepository.findAll()
+             .stream()
+             .map(dept -> {
+                 long count = dept.getEmployees() != null ?
+                        (long) dept.getEmployees().size() : 0;
+                 return mapToResponse(dept, count);
+             })
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ @Transactional
+ public DepartmentResponse updateDepartment(Long id, DepartmentRequest request) {
+     Department dept = departmentRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Department", "id", id));
+
+     if (!dept.getName().equals(request.getName()) &&
+             departmentRepository.existsByName(request.getName())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+                 "Department name already exists");
+     }
+
+     dept.setName(request.getName());
+     dept.setDescription(request.getDescription());
+     Department updated = departmentRepository.save(dept);
+     return mapToResponse(updated,
+             updated.getEmployees() != null ?
+                     updated.getEmployees().size() : 0);
+ }
+
+ @Override
+ @Transactional
+ public void deleteDepartment(Long id) {
+     Department dept = departmentRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                     "Department", "id", id));
+     if (dept.getEmployees() != null && !dept.getEmployees().isEmpty()) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+                 "Cannot delete department with employees assigned");
+     }
+     departmentRepository.delete(dept);
+     log.info("Department deleted: {}", id);
+ }
+
+ private DepartmentResponse mapToResponse(Department dept, Long empCount) {
+     return DepartmentResponse.builder()
+             .id(dept.getId())
+             .name(dept.getName())
+             .description(dept.getDescription())
+             .employeeCount(empCount)
+             .createdAt(dept.getCreatedAt())
+             .build();
+ }
+}
