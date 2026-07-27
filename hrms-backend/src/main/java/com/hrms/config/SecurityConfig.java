@@ -55,6 +55,10 @@ public class SecurityConfig {
              .requestMatchers("/api/leaves/apply").hasAnyRole("ADMIN", "EMPLOYEE")
              .requestMatchers("/api/payroll/my-payroll/**").hasAnyRole("ADMIN", "EMPLOYEE")
              .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "EMPLOYEE")
+          // Add to authorizeHttpRequests
+             .requestMatchers("/api/offer-letters/**").hasRole("ADMIN")
+             .requestMatchers("/api/document-templates/**").hasRole("ADMIN")
+             .requestMatchers("/api/employee-exits/**").hasAnyRole("ADMIN","EMPLOYEE")
 
              // All other requests need authentication
              .anyRequest().authenticated()

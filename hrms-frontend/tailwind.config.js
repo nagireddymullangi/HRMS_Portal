@@ -20,14 +20,14 @@ export default {
           800: '#1e40af',
           900: '#1e3a8a',
         },
-        sidebar: '#1e293b',
-        sidebarHover: '#334155',
+        sidebar: '#3c84f7',
+        sidebarHover: '#033273',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 2px 8px rgba(0,0,0,0.08)',
+        card: '0 2px 8px rgba(11, 178, 215, 0.08)',
       },
     },
   },

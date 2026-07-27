@@ -21,6 +21,9 @@ import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import MyAttendance from './pages/employee/MyAttendance';
 import MyLeave from './pages/employee/MyLeave';
 import MyPayroll from './pages/employee/MyPayroll';
+import OfferLetterManagement from './pages/admin/OfferLetterManagement';
+import ExitManagement from './pages/admin/ExitManagement';
+import DocumentTemplates from './pages/admin/DocumentTemplates';
 
 function App() {
   return (
@@ -39,6 +42,9 @@ function App() {
             <Route path="/admin/attendance" element={<AttendanceManagement />} />
             <Route path="/admin/leaves" element={<LeaveManagement />} />
             <Route path="/admin/payroll" element={<PayrollManagement />} />
+            <Route path="/admin/offer-letters" element={<OfferLetterManagement />} />
+            <Route path="/admin/employee-exits" element={<ExitManagement />} />
+            <Route path="/admin/document-templates" element={<DocumentTemplates />} />  
           </Route>
 
           {/* Employee Routes */}

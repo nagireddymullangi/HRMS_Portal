@@ -3,9 +3,10 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   FiHome, FiUsers, FiGrid, FiCalendar,
-  FiFileText, FiDollarSign, FiX, FiLogOut
+  FiFileText,FiUserX,FiFile, FiDollarSign, FiX, FiLogOut
 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
+
 
 // Admin Navigation Links
 const adminNavLinks = [
@@ -38,6 +39,21 @@ const adminNavLinks = [
     path: '/admin/payroll',
     label: 'Payroll',
     icon: FaRupeeSign,
+  },
+  { 
+    path: '/admin/offer-letters',
+    label: 'Offer Letters',
+    icon: FiFile,
+  },
+  {
+    path: '/admin/employee-exits',
+    label: 'Exit Management',
+    icon: FiUserX,
+  },
+  {
+    path: '/admin/document-templates',
+    label: 'Document Templates',
+    icon: FiFileText,
   },
 ];
 
