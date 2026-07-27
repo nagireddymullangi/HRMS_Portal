@@ -15,6 +15,7 @@ import Loader from '../../components/common/Loader';
 import payrollService from '../../services/payrollService';
 import employeeService from '../../services/employeeService';
 import { formatCurrency, getStatusBadge } from '../../utils/helpers';
+import { FaRupeeSign } from 'react-icons/fa';
 
 const MONTHS = [
   'January', 'February', 'March', 'April',
@@ -193,7 +194,7 @@ const PayrollManagement = () => {
       ) : payrolls.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon={FiDollarSign}
+            icon={FaRupeeSign}
             title="No Payroll Records"
             description="Generate payroll for the selected month"
             action={

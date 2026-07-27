@@ -5,6 +5,7 @@ import {
   FiHome, FiUsers, FiGrid, FiCalendar,
   FiFileText, FiDollarSign, FiX, FiLogOut
 } from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa';
 
 // Admin Navigation Links
 const adminNavLinks = [
@@ -36,7 +37,7 @@ const adminNavLinks = [
   {
     path: '/admin/payroll',
     label: 'Payroll',
-    icon: FiDollarSign,
+    icon: FaRupeeSign,
   },
 ];
 
@@ -60,7 +61,7 @@ const employeeNavLinks = [
   {
     path: '/employee/payroll',
     label: 'My Payroll',
-    icon: FiDollarSign,
+    icon: FaRupeeSign,
   },
 ];
 
