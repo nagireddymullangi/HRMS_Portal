@@ -13,12 +13,16 @@ import com.hrms.model.LeaveType;
 import com.hrms.repository.EmployeeRepository;
 import com.hrms.repository.LeaveRepository;
 import com.hrms.repository.LeaveTypeRepository;
+import com.hrms.service.EmailService;
 import com.hrms.service.LeaveService;
+import com.hrms.service.NotificationService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -32,6 +36,8 @@ public class LeaveServiceImpl implements LeaveService {
  private final LeaveRepository leaveRepository;
  private final EmployeeRepository employeeRepository;
  private final LeaveTypeRepository leaveTypeRepository;
+ private final EmailService emailService;
+ private final NotificationService notificationService;
 
  @Override
  @Transactional
@@ -70,6 +76,21 @@ public class LeaveServiceImpl implements LeaveService {
              .build();
 
      Leave saved = leaveRepository.save(leave);
+     
+     try {
+    	    Employee emp = saved.getEmployee();
+    	    String dates = saved.getStartDate() + " to " + saved.getEndDate();
+
+    	    if (saved.getStatus() == Leave.Status.APPROVED) {
+    	        notificationService.notifyLeaveApproved(emp.getFullName(), dates);
+    	    } else if (saved.getStatus() == Leave.Status.REJECTED) {
+    	        notificationService.notifyLeaveRejected(
+    	            emp.getFullName(), saved.getAdminComment());
+    	    }
+    	} catch (Exception e) {
+    	    log.error("Failed to send notification", e);
+    	}
+     
      log.info("Leave applied by employee: {}", employeeId);
      return mapToResponse(saved);
  }
@@ -102,20 +123,36 @@ public class LeaveServiceImpl implements LeaveService {
  @Override
  @Transactional
  public LeaveResponse updateLeaveStatus(Long id, LeaveStatusRequest request) {
-     Leave leave = leaveRepository.findById(id)
-             .orElseThrow(() -> new ResourceNotFoundException(
-                     "Leave", "id", id));
+   Leave leave = leaveRepository.findById(id)
+           .orElseThrow(() -> new ResourceNotFoundException("Leave", "id", id));
 
-     if (leave.getStatus() != Leave.Status.PENDING) {
-         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
-                 "Cannot update a leave that is already " + leave.getStatus());
-     }
+   if (leave.getStatus() != Leave.Status.PENDING) {
+       throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+               "Cannot update a leave that is already " + leave.getStatus());
+   }
 
-     leave.setStatus(Leave.Status.valueOf(request.getStatus()));
-     leave.setAdminComment(request.getAdminComment());
-     return mapToResponse(leaveRepository.save(leave));
+   leave.setStatus(Leave.Status.valueOf(request.getStatus()));
+   leave.setAdminComment(request.getAdminComment());
+   Leave saved = leaveRepository.save(leave);
+
+   // ✅ Send email notification
+   try {
+       Employee emp = saved.getEmployee();
+       emailService.sendLeaveStatusEmail(
+           emp.getEmail(),
+           emp.getFullName(),
+           saved.getStatus().name(),
+           saved.getAdminComment(),
+           saved.getLeaveType().getName(),
+           saved.getStartDate() + " to " + saved.getEndDate()
+       );
+   } catch (Exception e) {
+       log.error("Failed to send leave status email", e);
+   }
+
+   return mapToResponse(saved);
  }
-
+  
  @Override
  @Transactional
  public void deleteLeave(Long id) {
@@ -128,6 +165,9 @@ public class LeaveServiceImpl implements LeaveService {
      }
      leaveRepository.delete(leave);
  }
+
+
+
 
  @Override
  public List<Object> getLeaveTypes() {

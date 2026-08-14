@@ -1,2 +1,3 @@
-2026/07/27-21:10:50.735 53ec Creating DB C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Session Storage since it was missing.
-2026/07/27-21:10:50.876 53ec Reusing MANIFEST C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Session Storage/MANIFEST-000001
+2026/08/13-20:07:55.824 15c0 Reusing MANIFEST C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Session Storage/MANIFEST-000001
+2026/08/13-20:07:55.829 15c0 Recovering log #3
+2026/08/13-20:07:55.846 15c0 Reusing old log C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Session Storage/000003.log 

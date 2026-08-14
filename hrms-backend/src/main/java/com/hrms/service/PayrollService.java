@@ -15,4 +15,5 @@ public interface PayrollService {
  PayrollResponse updatePayroll(Long id, PayrollRequest request);
  PayrollResponse markAsPaid(Long id);
  void deletePayroll(Long id);
+ byte[] downloadPayslipPdf(Long id);
 }

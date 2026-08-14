@@ -4,6 +4,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, AdminRoute, EmployeeRoute } from './components/common/ProtectedRoute';
+import  PWAInstallPrompt  from './components/common/PWAInstallPrompt';
+import  NetworkStatus  from './components/common/NetworkStatus';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -15,15 +17,20 @@ import DepartmentManagement from './pages/admin/DepartmentManagement';
 import AttendanceManagement from './pages/admin/AttendanceManagement';
 import LeaveManagement from './pages/admin/LeaveManagement';
 import PayrollManagement from './pages/admin/PayrollManagement';
+import OfferLetterManagement from './pages/admin/OfferLetterManagement';
+import ExitManagement from './pages/admin/ExitManagement';
+import DocumentTemplates from './pages/admin/DocumentTemplates';
+import Reports from './pages/admin/Reports';
+import ShiftManagement from './pages/admin/ShiftManagement';
+import PerformanceManagement from './pages/admin/PerformanceManagement';
+import ESignaturePad from './pages/admin/ESignaturePad';
 
 // Employee Pages
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import MyAttendance from './pages/employee/MyAttendance';
 import MyLeave from './pages/employee/MyLeave';
 import MyPayroll from './pages/employee/MyPayroll';
-import OfferLetterManagement from './pages/admin/OfferLetterManagement';
-import ExitManagement from './pages/admin/ExitManagement';
-import DocumentTemplates from './pages/admin/DocumentTemplates';
+import BankDetails from './pages/employee/BankDetails';
 
 function App() {
   return (
@@ -42,9 +49,13 @@ function App() {
             <Route path="/admin/attendance" element={<AttendanceManagement />} />
             <Route path="/admin/leaves" element={<LeaveManagement />} />
             <Route path="/admin/payroll" element={<PayrollManagement />} />
+            <Route path="/admin/shifts" element={<ShiftManagement />} />
+            <Route path="/admin/performance" element={<PerformanceManagement />} />
             <Route path="/admin/offer-letters" element={<OfferLetterManagement />} />
             <Route path="/admin/employee-exits" element={<ExitManagement />} />
-            <Route path="/admin/document-templates" element={<DocumentTemplates />} />  
+            <Route path="/admin/document-templates" element={<DocumentTemplates />} />
+            <Route path="/admin/e-signatures" element={<ESignaturePad />} />
+            <Route path="/admin/reports" element={<Reports />} />
           </Route>
 
           {/* Employee Routes */}
@@ -53,6 +64,7 @@ function App() {
             <Route path="/employee/attendance" element={<MyAttendance />} />
             <Route path="/employee/leaves" element={<MyLeave />} />
             <Route path="/employee/payroll" element={<MyPayroll />} />
+            <Route path="/employee/bank-details" element={<BankDetails />} />
           </Route>
 
           {/* 404 */}

@@ -351,7 +351,10 @@ const OfferLetterManagement = () => {
               </label>
               <input
                 type="number"
-                {...register('offeredSalary', { required: 'Required' })}
+                min="0"
+                {...register('offeredSalary', { required: 'Required',
+                  min: { value: 0, message: 'Must be positive' }
+                 })}
                 className={`input-field ${errors.offeredSalary ? 'input-error' : ''}`}
                 placeholder="500000"
               />

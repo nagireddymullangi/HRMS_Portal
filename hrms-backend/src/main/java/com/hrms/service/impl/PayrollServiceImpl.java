@@ -20,9 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.YearMonth;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
+import java.io.ByteArrayOutputStream;
+
 
 @Service
 @RequiredArgsConstructor
@@ -170,6 +175,198 @@ public class PayrollServiceImpl implements PayrollService {
      return mapToResponse(payrollRepository.save(payroll));
  }
 
+ @Override
+ public byte[] downloadPayslipPdf(Long id) {
+	 Payroll payroll = payrollRepository.findById(id)
+			 .orElseThrow(() -> new ResourceNotFoundException(
+					 "Payroll", "id", id));
+	 return generatePdf(payroll);
+ }
+ 
+ private byte[] generatePdf(Payroll payroll) {
+	 try {
+		 String htmlContent = buildPayslipHtml(payroll);
+		 ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		 com.itextpdf.html2pdf.HtmlConverter.convertToPdf(htmlContent, baos);
+		 return baos.toByteArray();
+	 } catch (Exception e) {
+		 log.error("Error generating PDF: ", e);
+		 throw new RuntimeException("Failed to generate PDF");
+	 }
+ }
+ 
+//... inside your PayrollServiceImpl class ...
+
+public String buildPayslipHtml(Payroll payroll) {
+  // Using Java 17 Text Blocks for clean HTML formatting
+  String htmlTemplate = """
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <style>
+              body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 20px; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 15px; }
+              .title { font-size: 26px; font-weight: bold; color: #1e40af; margin: 0; letter-spacing: 1px; }
+              .company-name { font-size: 16px; color: #6b7280; margin-top: 5px; }
+              
+              .emp-details { width: 100%%; margin-bottom: 30px; border-collapse: collapse; }
+              .emp-details td { padding: 8px; font-size: 14px; color: #4b5563; }
+              .emp-details strong { color: #111827; }
+              
+              .salary-table { width: 100%%; border-collapse: collapse; margin-bottom: 30px; }
+              .salary-table th, .salary-table td { border: 1px solid #d1d5db; padding: 12px; text-align: left; font-size: 14px; }
+              .salary-table th { background-color: #f3f4f6; color: #374151; }
+              .salary-table .amount { text-align: right; font-family: monospace; font-size: 15px; }
+              
+              .section-title th { background-color: #e5e7eb; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px;}
+              .totals th { background-color: #f9fafb; font-weight: bold; }
+              .net-pay { font-size: 16px; font-weight: bold; background-color: #dbeafe !important; color: #1e40af !important; border-top: 2px solid #93c5fd !important; }
+              
+              .footer { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 40px; border-top: 1px dashed #d1d5db; padding-top: 15px; }
+          </style>
+      </head>
+      <body>
+          <div class="header">
+              <div class="title">SALARY PAYSLIP</div>
+              <div class="company-name">POTLA TECH SOLUTIONS</div>
+          </div>
+
+          <table class="emp-details">
+              <tr>
+                  <td><strong>Employee Name:</strong> %s</td>
+                  <td><strong>Employee Code:</strong> %s</td>
+              </tr>
+              <tr>
+                  <td><strong>Designation:</strong> %s</td>
+                  <td><strong>Department:</strong> %s</td>
+              </tr>
+              <tr>
+                  <td><strong>Pay Period:</strong> %s %d</td>
+                  <td><strong>Working Days:</strong> %s</td>
+              </tr>
+              <tr>
+				  <td><strong>Present Days:</strong> %s</td>
+				  <td></td>
+          </table>
+
+          <table class="salary-table">
+              <tr class="section-title">
+                  <th colspan="2">Earnings</th>
+                  <th colspan="2">Deductions</th>
+              </tr>
+              
+              <tr>
+                  <td>Basic Salary</td>
+                  <td class="amount">₹%s</td>
+                  <td>Provident Fund (PF)</td>
+                  <td class="amount">₹%s</td>
+              </tr>
+              <tr>
+                  <td>House Rent Allowance (HRA)</td>
+                  <td class="amount">₹%s</td>
+                  <td>Tax Deduction (TDS)</td>
+                  <td class="amount">₹%s</td>
+              </tr>
+              <tr>
+                  <td>Transport Allowance</td>
+                  <td class="amount">₹%s</td>
+                  <td>Other Deductions</td>
+                  <td class="amount">₹%s</td>
+              </tr>
+              <tr>
+                  <td>Medical Allowance</td>
+                  <td class="amount">₹%s</td>
+                  <td></td>
+                  <td class="amount"></td>
+              </tr>
+              <tr>
+                  <td>Other Allowances</td>
+                  <td class="amount">₹%s</td>
+                  <td></td>
+                  <td class="amount"></td>
+              </tr>
+              
+              <tr class="totals">
+                  <th>Gross Earnings</th>
+                  <th class="amount">₹%s</th>
+                  <th>Total Deductions</th>
+                  <th class="amount">₹%s</th>
+              </tr>
+              
+              <tr>
+                  <td colspan="2" class="net-pay">Net Salary Payable</td>
+                  <td colspan="2" class="net-pay amount">₹%s</td>
+              </tr>
+          </table>
+
+          <div class="footer">
+              <p>This is a computer-generated payslip and does not require a physical signature.</p>
+              <p>Generated on: %s</p>
+          </div>
+      </body>
+      </html>
+      """;
+
+  // Format the month nicely (e.g., "7" becomes "July")
+  String monthName = Month.of(payroll.getMonth())
+          .getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+          
+  // Current date for the footer
+  String generatedDate = java.time.LocalDate.now().toString();
+
+  // Map the fields exactly to the %s placeholders in the HTML string
+  return String.format(htmlTemplate,
+          // Employee Details
+          payroll.getEmployee().getFullName(),
+          payroll.getEmployee().getEmployeeId(), // Or getEmployeeCode() based on your entity
+          payroll.getEmployee().getDesignation(),
+          payroll.getEmployee().getDepartment().getName(),
+          monthName, 
+          payroll.getYear(),
+          payroll.getWorkingDays(),
+          payroll.getPresentDays(),
+          
+          // Row 1: Basic & PF
+          formatCurrency(payroll.getBasicSalary()),
+          formatCurrency(payroll.getPfDeduction()),
+
+          // Row 2: HRA & Tax
+          formatCurrency(payroll.getHra()),
+          formatCurrency(payroll.getTaxDeduction()),
+
+          // Row 3: Transport & Other Deductions
+          formatCurrency(payroll.getTransportAllowance()),
+          formatCurrency(payroll.getOtherDeductions()),
+
+          // Row 4: Medical
+          formatCurrency(payroll.getMedicalAllowance()),
+
+          // Row 5: Other Allowances
+          formatCurrency(payroll.getOtherAllowances()),
+
+          // Totals Row
+          formatCurrency(payroll.getGrossSalary()),
+          formatCurrency(payroll.getTotalDeductions()),
+
+          // Net Salary
+          formatCurrency(payroll.getNetSalary()),
+          
+          // Footer Date
+          generatedDate
+  );
+}
+
+/**
+* Helper method to safely format BigDecimal to a standard 2-decimal currency string
+*/
+private String formatCurrency(BigDecimal amount) {
+  if (amount == null) {
+      return "0.00";
+  }
+  // Formats to 2 decimal places (e.g., 45000 -> 45000.00)
+  return String.format("%.2f", amount);
+}
+ 
  @Override
  @Transactional
  public PayrollResponse markAsPaid(Long id) {

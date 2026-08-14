@@ -5,6 +5,7 @@ import {
   FiCalendar, FiFileText, FiDollarSign,
   FiClock, FiCheckCircle, FiXCircle
 } from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa';
 import Layout from '../../components/common/Layout';
 import StatCard from '../../components/common/StatCard';
 import Loader from '../../components/common/Loader';
@@ -83,7 +84,7 @@ const EmployeeDashboard = () => {
             <div className="card">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 
                              flex items-center gap-2">
-                <FiDollarSign className="text-green-600" />
+                <FaRupeeSign className="text-green-600" />
                 Latest Payslip
               </h2>
               <div className="space-y-3">

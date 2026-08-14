@@ -10,6 +10,7 @@ import {
   FiUsers, FiGrid, FiCalendar,
   FiFileText, FiDollarSign, FiUserCheck
 } from 'react-icons/fi';
+import { LuIndianRupee } from 'react-icons/lu';
 import Layout from '../../components/common/Layout';
 import StatCard from '../../components/common/StatCard';
 import Loader from '../../components/common/Loader';
@@ -81,7 +82,7 @@ const AdminDashboard = () => {
           <StatCard
             title="Monthly Payroll"
             value={formatCurrency(data?.totalPayrollThisMonth || 0)}
-            icon={FiDollarSign}
+            icon={LuIndianRupee}
             color="indigo"
           />
         </div>

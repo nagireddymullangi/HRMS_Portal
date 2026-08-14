@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; 
+             background: #f3f4f6;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table width="600" cellpadding="0" cellspacing="0"
+                       style="background: white; border-radius: 12px;">
+                    <tr>
+                        <td th:style="'background: ' + ${statusColor} + '; 
+                                       padding: 40px; text-align: center;'">
+                            <h1 style="color: white; margin: 0;">
+                                Leave <span th:text="${status}"></span>
+                            </h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p>Dear <strong th:text="${employeeName}"></strong>,</p>
+                            <p style="color: #6b7280;">
+                                Your leave application has been
+                                <strong th:text="${status}"></strong>.
+                            </p>
+
+                            <div style="background: #f9fafb; padding: 20px;
+                                        border-radius: 8px; margin: 20px 0;">
+                                <p><strong>Leave Type:</strong>
+                                   <span th:text="${leaveType}"></span></p>
+                                <p><strong>Dates:</strong>
+                                   <span th:text="${dates}"></span></p>
+                                <p th:if="${comment != null and comment != ''}">
+                                    <strong>Admin Comment:</strong>
+                                    <span th:text="${comment}"></span>
+                                </p>
+                            </div>
+
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a th:href="${frontendUrl}"
+                                   style="background: #2563eb; color: white;
+                                          padding: 12px 30px; text-decoration: none;
+                                          border-radius: 8px; display: inline-block;">
+                                    View in HRMS
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background: #f9fafb; padding: 20px;
+                                    text-align: center; font-size: 12px;
+                                    color: #6b7280;">
+                            © 2026 <span th:text="${companyName}"></span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

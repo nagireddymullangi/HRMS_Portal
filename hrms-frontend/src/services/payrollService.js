@@ -11,5 +11,10 @@ const payrollService = {
   update: (id, data) => api.put(`/payroll/${id}`, data),
   markPaid: (id) => api.patch(`/payroll/${id}/mark-paid`),
   delete: (id) => api.delete(`/payroll/${id}`),
+  downloadPayslipPdf: async (id) => {
+    return await api.get(`/payroll/${id}/download`, {
+      responseType: 'blob',
+    });
+  },
 };
 export default payrollService;

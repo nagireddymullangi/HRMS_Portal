@@ -91,4 +91,14 @@ public class PayrollController {
      return ResponseEntity.ok(
              ApiResponse.success("Payroll deleted successfully"));
  }
+ 
+ @GetMapping("/{id}/download")
+ @PreAuthorize("hasAnyRole('ADMIN','EMPLOYEE')")
+ public ResponseEntity<byte[]> downloadPayslip(@PathVariable Long id) {
+	 	 byte[] pdfBytes = payrollService.downloadPayslipPdf(id);
+	 return ResponseEntity.ok()
+			 .header("Content-Disposition", "attachment; filename=payslip_" + id + ".pdf")
+			 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+			 .body(pdfBytes);	
+ }
 }

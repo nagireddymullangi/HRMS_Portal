@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
 
+
+
 @Component
 @Slf4j
 public class PdfGenerator {
@@ -168,4 +170,8 @@ public class PdfGenerator {
          </html>
          """.formatted(title, content);
  }
+
+
+
+
 }

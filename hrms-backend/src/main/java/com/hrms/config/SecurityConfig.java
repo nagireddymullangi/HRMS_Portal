@@ -59,6 +59,13 @@ public class SecurityConfig {
              .requestMatchers("/api/offer-letters/**").hasRole("ADMIN")
              .requestMatchers("/api/document-templates/**").hasRole("ADMIN")
              .requestMatchers("/api/employee-exits/**").hasAnyRole("ADMIN","EMPLOYEE")
+             
+          // Add to authorizeHttpRequests
+             .requestMatchers("/api/reports/**").hasRole("ADMIN")
+             .requestMatchers("/api/shifts/**").hasRole("ADMIN")
+             .requestMatchers("/api/shifts/overtime").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/performance/cycles").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/performance/kras/**").hasAnyRole("ADMIN","EMPLOYEE")
 
              // All other requests need authentication
              .anyRequest().authenticated()

@@ -11,6 +11,7 @@ import com.hrms.model.User;
 import com.hrms.repository.DepartmentRepository;
 import com.hrms.repository.EmployeeRepository;
 import com.hrms.repository.UserRepository;
+import com.hrms.service.EmailService;
 import com.hrms.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -84,8 +86,20 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .build();
 
         Employee saved = employeeRepository.save(employee);
+        try {
+            emailService.sendWelcomeEmail(
+                saved.getEmail(),
+                saved.getFullName(),
+                request.getUsername(),
+                request.getPassword()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send welcome email", e);
+        }
         log.info("Employee created: {}", saved.getEmployeeId());
         return mapToResponse(saved);
+        
+        
     }
 
     @Override

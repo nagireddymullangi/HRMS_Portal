@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import {
-  FiPlus, FiEdit2, FiTrash2,
+  FiPlus, FiEdit2, FiTrash2, FiDownload,
   FiDollarSign, FiCheckCircle
 } from 'react-icons/fi';
 import Layout from '../../components/common/Layout';
@@ -38,13 +38,19 @@ const PayrollManagement = () => {
     new Date().getFullYear()
   );
 
-  const { register, handleSubmit, reset, setValue,
+  const { register, handleSubmit, reset, setValue, watch,
           formState: { errors } } = useForm({
     defaultValues: {
       month: new Date().getMonth() + 1,
       year: new Date().getFullYear(),
     }
   });
+
+  const basicSalaryValue = watch('basicSalary');
+  const workingDaysValue = watch('workingDays');
+  const presentDaysValue = watch('presentDays');
+  const grossSalaryValue = watch('grossSalary');
+  
 
   useEffect(() => {
     fetchEmployees();
@@ -53,6 +59,39 @@ const PayrollManagement = () => {
   useEffect(() => {
     fetchPayrolls();
   }, [filterMonth, filterYear]);
+
+  useEffect(() => {
+    const basic = parseFloat(basicSalaryValue) || 0;
+    if (basic > 0) {
+    setValue('hra', (basic * 0.4).toFixed(0));
+    setValue('transportAllowance', (basic * 0.1).toFixed(0));
+    setValue('medicalAllowance', (basic * 0.05).toFixed(0));
+    setValue('otherAllowances', (basic * 0.0).toFixed(0));
+    setValue('pfDeduction', (basic * 0.12).toFixed(0));
+  } else {
+    setValue('hra', 0);
+    setValue('transportAllowance', 0);
+    setValue('medicalAllowance', 0);
+    setValue('otherAllowances', 0);
+    setValue('pfDeduction', 0);
+  }
+  }, [basicSalaryValue, setValue]);
+
+  useEffect(() => {
+    const workingDays = parseFloat(workingDaysValue) || 0;
+    const presentDays = parseFloat(presentDaysValue) || 0;
+    const grossSalary = parseFloat(grossSalaryValue) || 0;
+    if (workingDays > 0 && presentDays < workingDays) {
+      const absentDays = workingDays - presentDays;
+      const perDaySalary = grossSalary / workingDays;
+      const totallopDeduction = perDaySalary * absentDays;
+      setValue('otherDeductions', Math.round(totallopDeduction));
+    } else {
+      setValue('otherDeductions', 0);
+    }
+  }, [workingDaysValue, presentDaysValue, grossSalaryValue, setValue]);
+
+
 
   const fetchEmployees = async () => {
     try {
@@ -88,6 +127,22 @@ const PayrollManagement = () => {
       });
     }
     setIsModalOpen(true);
+  };
+  const handleDownloadPayslip = async (id) => {
+    try {
+      const res = await payrollService.downloadPayslipPdf(id);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `payslip_${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading payslip:', error);
+      toast.error('Failed to download payslip');
+    }
   };
 
   const onSubmit = async (data) => {
@@ -264,6 +319,14 @@ const PayrollManagement = () => {
                           </button>
                         )}
                         <button
+                          onClick={() => handleDownloadPayslip(p.id)}
+                          className="p-2 rounded-lg hover:bg-green-50 
+                                     text-green-600 transition-colors"
+                          title="Download PDF"
+                        >
+                          <FiDownload className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => openModal(p)}
                           className="p-2 rounded-lg hover:bg-blue-50 
                                      text-blue-600 transition-colors"
@@ -397,12 +460,7 @@ const PayrollManagement = () => {
                   min="0"
                   step="0"
                   {...register(name,{ min: 0 })}
-                  // onKeyDown={(e) => {
-                  //   if (e.key === '-'){
-                  //     e.preventDefault();
-                  //   }
-                  // }}
-                  className="input-field"
+                  className="form-input"
                   placeholder="0"
                 />
               </div>

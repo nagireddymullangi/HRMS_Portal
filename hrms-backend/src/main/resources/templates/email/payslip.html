@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"/></head>
+<body style="font-family: Arial, sans-serif; background: #f3f4f6;">
+    <table width="600" cellpadding="0" cellspacing="0" align="center"
+           style="background: white; border-radius: 12px; margin: 40px auto;">
+        <tr>
+            <td style="background: linear-gradient(135deg, #2563eb, #1e40af);
+                        padding: 40px; text-align: center;">
+                <h1 style="color: white; margin: 0;">💰 Payslip Available</h1>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 40px;">
+                <p>Dear <strong th:text="${employeeName}"></strong>,</p>
+                <p style="color: #6b7280;">
+                    Your payslip for
+                    <strong>
+                        <span th:text="${month}"></span>
+                        <span th:text="${year}"></span>
+                    </strong>
+                    is now available. Please find it attached to this email.
+                </p>
+                <p style="color: #6b7280;">
+                    You can also view all your payslips by logging into
+                    the HRMS portal.
+                </p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a th:href="${frontendUrl}"
+                       style="background: #2563eb; color: white;
+                              padding: 12px 30px; text-decoration: none;
+                              border-radius: 8px;">View Payslips</a>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
