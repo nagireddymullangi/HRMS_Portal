@@ -1,0 +1,59 @@
+# Application
+spring.application.name=hrms-backend
+server.port=8080
+
+# Database Configuration
+spring.datasource.url=jdbc:mysql://localhost:3306/hrms?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# JPA/Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+# JWT Configuration
+app.jwt-secret=hrmsSecretKeyForJWTTokenGenerationAndValidation2026HRMSPortal
+app.jwt-expiration-milliseconds=86400000
+app.seed-admin=true
+
+# Logging
+logging.level.com.hrms=DEBUG
+logging.level.org.springframework.security=DEBUG
+
+# File Upload
+spring.servlet.multipart.enabled=true
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# Add to application.properties
+
+# ==================== EMAIL CONFIGURATION ====================
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your-email@gmail.com
+spring.mail.password=your-app-specific-password
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.starttls.required=true
+spring.mail.properties.mail.debug=false
+
+# Email Settings
+app.mail.from=noreply@potlatech.com
+app.mail.from-name=Potla Tech HRMS
+app.mail.enabled=true
+app.company.name=Potla Tech Solutions
+app.frontend.url=http://localhost:3000
+
+# Add to application.properties
+
+# ==================== SLACK ====================
+app.slack.enabled=false
+app.slack.webhook-url=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+app.slack.default-channel=#hr-notifications
+
+# ==================== TEAMS ====================
+app.teams.enabled=false
+app.teams.webhook-url=https://outlook.office.com/webhook/YOUR-WEBHOOK

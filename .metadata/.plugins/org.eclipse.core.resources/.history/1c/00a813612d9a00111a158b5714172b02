@@ -1,0 +1,202 @@
+
+//service/impl/BiometricDeviceServiceImpl.java
+package com.hrms.service.impl;
+
+import com.hrms.dto.request.BiometricSyncRequest;
+import com.hrms.exception.HrmsAPIException;
+import com.hrms.exception.ResourceNotFoundException;
+import com.hrms.model.Attendance;
+import com.hrms.model.BiometricDevice;
+import com.hrms.model.Employee;
+import com.hrms.repository.AttendanceRepository;
+import com.hrms.repository.BiometricDeviceRepository;
+import com.hrms.repository.EmployeeRepository;
+import com.hrms.service.BiometricDeviceService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class BiometricDeviceServiceImpl implements BiometricDeviceService {
+
+ private final BiometricDeviceRepository deviceRepository;
+ private final EmployeeRepository employeeRepository;
+ private final AttendanceRepository attendanceRepository;
+
+ @Override
+ @Transactional
+ public BiometricDevice createDevice(BiometricDevice device) {
+     // Generate API key if not provided
+     if (device.getApiKey() == null || device.getApiKey().isEmpty()) {
+         device.setApiKey(generateApiKey());
+     }
+     return deviceRepository.save(device);
+ }
+
+ @Override
+ @Transactional
+ public BiometricDevice updateDevice(Long id, BiometricDevice device) {
+     BiometricDevice existing = deviceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Device", "id", id));
+
+     existing.setDeviceName(device.getDeviceName());
+     existing.setDeviceType(device.getDeviceType());
+     existing.setManufacturer(device.getManufacturer());
+     existing.setModel(device.getModel());
+     existing.setIpAddress(device.getIpAddress());
+     existing.setPort(device.getPort());
+     existing.setLocation(device.getLocation());
+     existing.setIsActive(device.getIsActive());
+
+     return deviceRepository.save(existing);
+ }
+
+ @Override
+ public List<BiometricDevice> getAllDevices() {
+     return deviceRepository.findAll();
+ }
+
+ @Override
+ public BiometricDevice getById(Long id) {
+     return deviceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Device", "id", id));
+ }
+
+ @Override
+ public void deleteDevice(Long id) {
+     deviceRepository.deleteById(id);
+ }
+
+ @Override
+ @Transactional
+ public Map<String, Object> syncAttendanceFromDevice(
+         BiometricSyncRequest request) {
+
+     // Verify device
+     BiometricDevice device = deviceRepository
+             .findBySerialNumber(request.getDeviceSerialNumber())
+             .orElseThrow(() -> new HrmsAPIException(HttpStatus.NOT_FOUND,
+                 "Device not found"));
+
+     if (!device.getApiKey().equals(request.getApiKey())) {
+         throw new HrmsAPIException(HttpStatus.UNAUTHORIZED,
+             "Invalid API key");
+     }
+
+     if (!device.getIsActive()) {
+         throw new HrmsAPIException(HttpStatus.FORBIDDEN,
+             "Device is inactive");
+     }
+
+     // Process logs
+     int successCount = 0;
+     int failCount = 0;
+     List<String> errors = new ArrayList<>();
+
+     for (BiometricSyncRequest.DeviceLog log : request.getLogs()) {
+         try {
+             processDeviceLog(log, device);
+             successCount++;
+         } catch (Exception e) {
+             failCount++;
+             errors.add(log.getEmployeeCode() + ": " + e.getMessage());
+             log.error("Failed to process log: {}", log.getEmployeeCode());
+         }
+     }
+
+     // Update device last sync
+     device.setLastSync(LocalDateTime.now());
+     deviceRepository.save(device);
+
+     Map<String, Object> result = new HashMap<>();
+     result.put("totalLogs", request.getLogs().size());
+     result.put("success", successCount);
+     result.put("failed", failCount);
+     result.put("errors", errors);
+     result.put("syncedAt", LocalDateTime.now());
+
+     return result;
+ }
+
+ private void processDeviceLog(BiometricSyncRequest.DeviceLog deviceLog,
+                                 BiometricDevice device) {
+     // Find employee by employee code
+     Employee employee = employeeRepository.findAll().stream()
+             .filter(e -> e.getEmployeeId().equals(deviceLog.getEmployeeCode()))
+             .findFirst()
+             .orElseThrow(() -> new RuntimeException(
+                 "Employee not found: " + deviceLog.getEmployeeCode()));
+
+     LocalDate date = deviceLog.getTimestamp().toLocalDate();
+
+     // Get or create attendance
+     Attendance attendance = attendanceRepository
+             .findByEmployeeIdAndDate(employee.getId(), date)
+             .orElse(Attendance.builder()
+                 .employee(employee)
+                 .date(date)
+                 .status(Attendance.Status.PRESENT)
+                 .attendanceMode(Attendance.AttendanceMode.BIOMETRIC)
+                 .device(device)
+                 .isVerified(true)
+                 .build());
+
+     if ("IN".equalsIgnoreCase(deviceLog.getType())) {
+         attendance.setCheckIn(deviceLog.getTimestamp().toLocalTime());
+     } else if ("OUT".equalsIgnoreCase(deviceLog.getType())) {
+         attendance.setCheckOut(deviceLog.getTimestamp().toLocalTime());
+
+         // Calculate working hours
+         if (attendance.getCheckIn() != null) {
+             long minutes = java.time.Duration.between(
+                 attendance.getCheckIn(), attendance.getCheckOut())
+                 .toMinutes();
+             attendance.setWorkingHours(minutes / 60.0);
+         }
+     }
+
+     attendance.setDevice(device);
+     attendance.setAttendanceMode(Attendance.AttendanceMode.BIOMETRIC);
+     attendanceRepository.save(attendance);
+ }
+
+ @Override
+ public Map<String, Object> testConnection(Long deviceId) {
+     BiometricDevice device = getById(deviceId);
+     Map<String, Object> result = new HashMap<>();
+
+     try {
+         // Basic ping-like test (In real scenario, use device SDK)
+         java.net.InetAddress address = java.net.InetAddress.getByName(
+             device.getIpAddress());
+         boolean reachable = address.isReachable(3000);
+
+         result.put("success", reachable);
+         result.put("message", reachable
+             ? "Device is reachable"
+             : "Device is not reachable");
+         result.put("deviceName", device.getDeviceName());
+         result.put("ipAddress", device.getIpAddress());
+     } catch (Exception e) {
+         result.put("success", false);
+         result.put("message", "Connection failed: " + e.getMessage());
+     }
+
+     return result;
+ }
+
+ private String generateApiKey() {
+     return "BIO-" + UUID.randomUUID().toString()
+         .replace("-", "").substring(0, 32).toUpperCase();
+ }
+}

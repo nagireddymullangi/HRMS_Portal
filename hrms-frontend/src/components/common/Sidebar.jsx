@@ -8,6 +8,7 @@ import {
 import { FaRupeeSign } from 'react-icons/fa';
 
 import { FiBarChart2, FiClock, FiTarget } from 'react-icons/fi';
+import { FiHardDrive, FiUserCheck, FiCamera } from 'react-icons/fi';
 
 import { useEffect, useState } from 'react';
  import {
@@ -82,6 +83,14 @@ const adminNavLinks = [
   label: 'Performance',
   icon: FiTarget,
 },
+{ path: '/admin/biometric-devices', 
+  label: 'Biometric Devices', 
+  icon: FiHardDrive 
+},
+{ path: '/admin/face-enrollments', 
+  label: 'Face Enrollments', 
+  icon: FiUserCheck
+ },
 ];
 
 // Employee Navigation Links
@@ -110,7 +119,11 @@ const employeeNavLinks = [
     path:'/employee/bank-details',
     label: 'Bank Details',
     icon: FiCreditCard,
-  }
+  },
+  { path: '/employee/face-checkin', 
+    label: 'Face Check-in', 
+    icon: FiCamera 
+  },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {

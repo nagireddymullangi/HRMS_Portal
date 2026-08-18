@@ -24,6 +24,8 @@ import Reports from './pages/admin/Reports';
 import ShiftManagement from './pages/admin/ShiftManagement';
 import PerformanceManagement from './pages/admin/PerformanceManagement';
 import ESignaturePad from './pages/admin/ESignaturePad';
+import BiometricDevices from './pages/admin/BiometricDevices';
+import FaceEnrollments from './pages/admin/FaceEnrollments';
 
 // Employee Pages
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
@@ -31,6 +33,7 @@ import MyAttendance from './pages/employee/MyAttendance';
 import MyLeave from './pages/employee/MyLeave';
 import MyPayroll from './pages/employee/MyPayroll';
 import BankDetails from './pages/employee/BankDetails';
+import FaceCheckIn from './pages/employee/FaceCheckIn';
 
 function App() {
   return (
@@ -56,6 +59,8 @@ function App() {
             <Route path="/admin/document-templates" element={<DocumentTemplates />} />
             <Route path="/admin/e-signatures" element={<ESignaturePad />} />
             <Route path="/admin/reports" element={<Reports />} />
+            <Route path="/admin/biometric-devices" element={<BiometricDevices />} />
+            <Route path="/admin/face-enrollments" element={<FaceEnrollments />} />
           </Route>
 
           {/* Employee Routes */}
@@ -65,6 +70,7 @@ function App() {
             <Route path="/employee/leaves" element={<MyLeave />} />
             <Route path="/employee/payroll" element={<MyPayroll />} />
             <Route path="/employee/bank-details" element={<BankDetails />} />
+            <Route path="/employee/face-check-in" element={<FaceCheckIn />} />
           </Route>
 
           {/* 404 */}

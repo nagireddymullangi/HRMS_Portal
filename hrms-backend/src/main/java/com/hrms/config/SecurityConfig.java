@@ -67,6 +67,13 @@ public class SecurityConfig {
              .requestMatchers("/api/performance/cycles").hasAnyRole("ADMIN","EMPLOYEE")
              .requestMatchers("/api/performance/kras/**").hasAnyRole("ADMIN","EMPLOYEE")
 
+          // Add to SecurityConfig.java authorizeHttpRequests
+
+             .requestMatchers("/api/face-recognition/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/biometric-devices/**").hasRole("ADMIN")
+             .requestMatchers("/api/biometric-devices/sync").permitAll() // Device sync
+             .requestMatchers("/uploads/**").permitAll() // Serve uploaded files
+             
              // All other requests need authentication
              .anyRequest().authenticated()
          )

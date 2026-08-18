@@ -1,0 +1,5 @@
+package com.hrms.config;
+
+public class WebMvcConfig {
+
+}

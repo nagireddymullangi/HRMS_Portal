@@ -40,15 +40,15 @@ const LoginPage = () => {
   };
 
   // Fill demo credentials
-  const fillDemo = (type) => {
-    if (type === 'admin') {
-      setValue('usernameOrEmail', 'admin');
-      setValue('password', 'Admin@123');
-    } else {
-      setValue('usernameOrEmail', 'emp001');
-      setValue('password', 'Emp@123');
-    }
-  };
+  // const fillDemo = (type) => {
+  //   if (type === 'admin') {
+  //     setValue('usernameOrEmail', 'admin');
+  //     setValue('password', 'Admin@123');
+  //   } else {
+  //     setValue('usernameOrEmail', 'emp001');
+  //     setValue('password', 'Emp@123');
+  //   }
+  // };
 
   const features = [
     { icon: '👥', label: 'Employees' },
@@ -204,6 +204,7 @@ const LoginPage = () => {
                                   text-gray-700 mb-2">
                   Password
                 </label>
+                
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex 
                                   items-center pointer-events-none">
@@ -241,12 +242,17 @@ const LoginPage = () => {
                       <FiEye className="h-5 w-5" />
                     )}
                   </button>
+                  
                 </div>
                 {errors.password && (
                   <p className="text-xs text-red-500 mt-1.5 ml-1">
                     {errors.password.message}
                   </p>
                 )}
+                <a href="/forgot-password" 
+                className='block text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors'>
+                  Forgot Password?
+                </a>
               </div>
 
               {/* Sign In Button */}
@@ -267,7 +273,7 @@ const LoginPage = () => {
           </div>
 
           {/* Demo Accounts Card */}
-          <div className="bg-white rounded-3xl shadow-xl p-6">
+          {/* <div className="bg-white rounded-3xl shadow-xl p-6">
             <h3 className="text-center text-gray-700 font-semibold mb-4">
               Demo Accounts
             </h3>
@@ -302,7 +308,7 @@ const LoginPage = () => {
                 Admin@123
               </code>
             </p>
-          </div>
+          </div> */}
 
           {/* Mobile Footer */}
           <p className="lg:hidden text-center text-gray-400 text-xs">
