@@ -1,148 +1,252 @@
-
-//service/impl/NotificationServiceImpl.java
 package com.hrms.service.impl;
 
+import com.hrms.dto.response.NotificationResponse;
+import com.hrms.model.Notification;
+import com.hrms.repository.NotificationRepository;
 import com.hrms.service.NotificationService;
+import lombok.RequiredArgsConstructor; // 👈 REQUIRED
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor // 👈 THIS WAS MISSING
 @Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
- @Value("${app.slack.enabled}")
- private boolean slackEnabled;
+    private final NotificationRepository notificationRepository;
 
- @Value("${app.slack.webhook-url}")
- private String slackWebhookUrl;
+    @Value("${app.slack.enabled:false}")
+    private boolean slackEnabled;
 
- @Value("${app.slack.default-channel}")
- private String slackChannel;
+    @Value("${app.slack.webhook-url:}")
+    private String slackWebhookUrl;
 
- @Value("${app.teams.enabled}")
- private boolean teamsEnabled;
+    @Value("${app.slack.default-channel:#hr-notifications}")
+    private String slackChannel;
 
- @Value("${app.teams.webhook-url}")
- private String teamsWebhookUrl;
+    @Value("${app.teams.enabled:false}")
+    private boolean teamsEnabled;
 
- private final RestTemplate restTemplate = new RestTemplate();
+    @Value("${app.teams.webhook-url:}")
+    private String teamsWebhookUrl;
 
- @Override
- @Async
- public void sendSlackNotification(String message) {
-     sendSlackNotification(message, slackChannel);
- }
+    private final RestTemplate restTemplate = new RestTemplate();
 
- @Override
- @Async
- public void sendSlackNotification(String message, String channel) {
-     if (!slackEnabled) {
-         log.info("Slack disabled. Would send: {}", message);
-         return;
-     }
+    // ================= IN-APP NOTIFICATIONS (BELL ICON) =================
 
-     try {
-         Map<String, Object> payload = new HashMap<>();
-         payload.put("channel", channel);
-         payload.put("username", "HRMS Bot");
-         payload.put("icon_emoji", ":briefcase:");
-         payload.put("text", message);
+    @Override
+    public void createNotification(Long userId, String title, String message,
+                                     Notification.NotificationType type,
+                                     Long referenceId, String referenceType,
+                                     String actionUrl, String icon,
+                                     Notification.Priority priority) {
+        try {
+            Notification notification = Notification.builder()
+                    .userId(userId)
+                    .title(title)
+                    .message(message)
+                    .type(type != null ? type : Notification.NotificationType.GENERAL)
+                    .referenceId(referenceId)
+                    .referenceType(referenceType)
+                    .actionUrl(actionUrl)
+                    .icon(icon)
+                    .priority(priority != null ? priority : Notification.Priority.MEDIUM)
+                    .isRead(false)
+                    .build();
 
-         HttpHeaders headers = new HttpHeaders();
-         headers.setContentType(MediaType.APPLICATION_JSON);
+            notificationRepository.save(notification);
+            log.info("In-app notification created for userId: {}", userId);
+        } catch (Exception e) {
+            log.error("Failed to create in-app notification for userId: {}", userId, e);
+        }
+    }
 
-         HttpEntity<Map<String, Object>> request = new HttpEntity<>(
-             payload, headers);
-         restTemplate.postForEntity(slackWebhookUrl, request, String.class);
+    @Override
+    public List<NotificationResponse> getRecent(Long userId) {
+        return notificationRepository
+                .findTop10ByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
-         log.info("Slack notification sent");
-     } catch (Exception e) {
-         log.error("Failed to send Slack notification: {}", e.getMessage());
-     }
- }
+    @Override
+    public List<NotificationResponse> getAll(Long userId, int page, int size) {
+        return notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size))
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
- @Override
- @Async
- public void sendTeamsNotification(String title, String message,
-                                     String color) {
-     if (!teamsEnabled) {
-         log.info("Teams disabled. Would send: {}", message);
-         return;
-     }
+    @Override
+    public Long getUnreadCount(Long userId) {
+        Long count = notificationRepository.countByUserIdAndIsReadFalse(userId);
+        return count != null ? count : 0L;
+    }
 
-     try {
-         Map<String, Object> payload = new HashMap<>();
-         payload.put("@type", "MessageCard");
-         payload.put("@context", "https://schema.org/extensions");
-         payload.put("themeColor", color != null ? color : "0076D7");
-         payload.put("summary", title);
-         payload.put("title", title);
-         payload.put("text", message);
+    @Override
+    @Transactional
+    public void markAsRead(Long notificationId) {
+        notificationRepository.markAsRead(notificationId);
+    }
 
-         HttpHeaders headers = new HttpHeaders();
-         headers.setContentType(MediaType.APPLICATION_JSON);
+    @Override
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        notificationRepository.markAllAsRead(userId);
+    }
 
-         HttpEntity<Map<String, Object>> request = new HttpEntity<>(
-             payload, headers);
-         restTemplate.postForEntity(teamsWebhookUrl, request, String.class);
+    @Override
+    public void deleteNotification(Long id) {
+        notificationRepository.deleteById(id);
+    }
 
-         log.info("Teams notification sent");
-     } catch (Exception e) {
-         log.error("Failed to send Teams notification: {}", e.getMessage());
-     }
- }
+    @Override
+    @Transactional
+    public void deleteAllRead(Long userId) {
+        notificationRepository.deleteAllReadByUser(userId);
+    }
 
- @Override
- public void notifyLeaveApproved(String employeeName, String dates) {
-     String message = String.format(
-         "✅ *Leave Approved*\n👤 Employee: %s\n📅 Dates: %s",
-         employeeName, dates);
-     sendSlackNotification(message);
-     sendTeamsNotification("Leave Approved", message, "10b981");
- }
+    // ================= SLACK & TEAMS WEBHOOKS =================
 
- @Override
- public void notifyLeaveRejected(String employeeName, String reason) {
-     String message = String.format(
-         "❌ *Leave Rejected*\n👤 Employee: %s\n📝 Reason: %s",
-         employeeName, reason);
-     sendSlackNotification(message);
-     sendTeamsNotification("Leave Rejected", message, "ef4444");
- }
+    @Override
+    @Async
+    public void sendSlackNotification(String message) {
+        sendSlackNotification(message, slackChannel);
+    }
 
- @Override
- public void notifyNewEmployee(String employeeName, String department) {
-     String message = String.format(
-         "🎉 *New Employee Joined!*\n👤 %s\n🏢 Department: %s",
-         employeeName, department);
-     sendSlackNotification(message);
-     sendTeamsNotification("New Employee", message, "3b82f6");
- }
+    @Override
+    @Async
+    public void sendSlackNotification(String message, String channel) {
+        if (!slackEnabled || slackWebhookUrl == null || slackWebhookUrl.isEmpty()) {
+            log.info("Slack notifications disabled or webhook URL not set.");
+            return;
+        }
 
- @Override
- public void notifyEmployeeExit(String employeeName,
-                                  String lastWorkingDate) {
-     String message = String.format(
-         "👋 *Employee Exit Initiated*\n👤 %s\n📅 Last Working Day: %s",
-         employeeName, lastWorkingDate);
-     sendSlackNotification(message);
-     sendTeamsNotification("Employee Exit", message, "f59e0b");
- }
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("channel", channel);
+            payload.put("username", "HRMS Bot");
+            payload.put("icon_emoji", ":briefcase:");
+            payload.put("text", message);
 
- @Override
- public void notifyPayrollGenerated(String month, String year, int count) {
-     String message = String.format(
-         "💰 *Payroll Generated*\n📅 %s %s\n👥 Total employees: %d",
-         month, year, count);
-     sendSlackNotification(message);
-     sendTeamsNotification("Payroll Generated", message, "10b981");
- }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+            restTemplate.postForEntity(slackWebhookUrl, request, String.class);
+
+            log.info("Slack notification sent successfully");
+        } catch (Exception e) {
+            log.error("Failed to send Slack notification: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    @Async
+    public void sendTeamsNotification(String title, String message, String color) {
+        if (!teamsEnabled || teamsWebhookUrl == null || teamsWebhookUrl.isEmpty()) {
+            log.info("Teams notifications disabled or webhook URL not set.");
+            return;
+        }
+
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("@type", "MessageCard");
+            payload.put("@context", "https://schema.org/extensions");
+            payload.put("themeColor", color != null ? color : "0076D7");
+            payload.put("summary", title);
+            payload.put("title", title);
+            payload.put("text", message);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+            restTemplate.postForEntity(teamsWebhookUrl, request, String.class);
+
+            log.info("Teams notification sent successfully");
+        } catch (Exception e) {
+            log.error("Failed to send Teams notification: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void notifyLeaveApproved(String employeeName, String dates) {
+        String message = String.format("✅ *Leave Approved*\n👤 Employee: %s\n📅 Dates: %s", employeeName, dates);
+        sendSlackNotification(message);
+        sendTeamsNotification("Leave Approved", message, "10b981");
+    }
+
+    @Override
+    public void notifyLeaveRejected(String employeeName, String reason) {
+        String message = String.format("❌ *Leave Rejected*\n👤 Employee: %s\n📝 Reason: %s", employeeName, reason);
+        sendSlackNotification(message);
+        sendTeamsNotification("Leave Rejected", message, "ef4444");
+    }
+
+    @Override
+    public void notifyNewEmployee(String employeeName, String department) {
+        String message = String.format("🎉 *New Employee Joined!*\n👤 %s\n🏢 Department: %s", employeeName, department);
+        sendSlackNotification(message);
+        sendTeamsNotification("New Employee", message, "3b82f6");
+    }
+
+    @Override
+    public void notifyEmployeeExit(String employeeName, String lastWorkingDate) {
+        String message = String.format("👋 *Employee Exit Initiated*\n👤 %s\n📅 Last Working Day: %s", employeeName, lastWorkingDate);
+        sendSlackNotification(message);
+        sendTeamsNotification("Employee Exit", message, "f59e0b");
+    }
+
+    @Override
+    public void notifyPayrollGenerated(String month, String year, int count) {
+        String message = String.format("💰 *Payroll Generated*\n📅 %s %s\n👥 Total employees: %d", month, year, count);
+        sendSlackNotification(message);
+        sendTeamsNotification("Payroll Generated", message, "10b981");
+    }
+
+    // ================= HELPER METHODS =================
+
+    private NotificationResponse mapToResponse(Notification n) {
+        return NotificationResponse.builder()
+                .id(n.getId())
+                .title(n.getTitle())
+                .message(n.getMessage())
+                .type(n.getType() != null ? n.getType().name() : "GENERAL")
+                .referenceId(n.getReferenceId())
+                .referenceType(n.getReferenceType())
+                .actionUrl(n.getActionUrl())
+                .icon(n.getIcon())
+                .isRead(Boolean.TRUE.equals(n.getIsRead()))
+                .readAt(n.getReadAt())
+                .priority(n.getPriority() != null ? n.getPriority().name() : "MEDIUM")
+                .createdAt(n.getCreatedAt())
+                .timeAgo(getTimeAgo(n.getCreatedAt()))
+                .build();
+    }
+
+    private String getTimeAgo(LocalDateTime dateTime) {
+        if (dateTime == null) return "";
+        long seconds = Duration.between(dateTime, LocalDateTime.now()).getSeconds();
+        if (seconds < 60) return "Just now";
+        if (seconds < 3600) return (seconds / 60) + "m ago";
+        if (seconds < 86400) return (seconds / 3600) + "h ago";
+        if (seconds < 604800) return (seconds / 86400) + "d ago";
+        return (seconds / 604800) + "w ago";
+    }
 }

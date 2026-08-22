@@ -1,0 +1,309 @@
+
+//service/impl/PasswordResetServiceImpl.java
+package com.hrms.service.impl;
+
+import com.hrms.dto.request.ChangePasswordRequest;
+import com.hrms.dto.request.ForgotPasswordRequest;
+import com.hrms.dto.request.ResetPasswordRequest;
+import com.hrms.exception.HrmsAPIException;
+import com.hrms.exception.ResourceNotFoundException;
+import com.hrms.model.Employee;
+import com.hrms.model.PasswordResetToken;
+import com.hrms.model.User;
+import com.hrms.repository.EmployeeRepository;
+import com.hrms.repository.PasswordResetTokenRepository;
+import com.hrms.repository.UserRepository;
+import com.hrms.service.EmailService;
+import com.hrms.service.PasswordResetService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class PasswordResetServiceImpl implements PasswordResetService {
+
+ private final UserRepository userRepository;
+ private final EmployeeRepository employeeRepository;
+ private final PasswordResetTokenRepository tokenRepository;
+ private final PasswordEncoder passwordEncoder;
+ private final EmailService emailService;
+
+ @Value("${app.password-reset.token-expiry-minutes:30}")
+ private int tokenExpiryMinutes;
+
+ @Value("${app.frontend.url}")
+ private String frontendUrl;
+
+ @Override
+ @Transactional
+ public Map<String, Object> forgotPassword(ForgotPasswordRequest request,
+                                             String ipAddress,
+                                             String userAgent) {
+     Map<String, Object> response = new HashMap<>();
+
+     // Always return success (security best practice - don't reveal
+     // whether email exists in system)
+     response.put("success", true);
+     response.put("message", "If the email exists in our system, " +
+                  "you will receive a password reset link shortly.");
+
+     try {
+         // Check if user exists
+         User user = userRepository.findByEmail(request.getEmail())
+                 .orElse(null);
+
+         if (user == null) {
+             log.warn("Password reset requested for non-existent email: {}",
+                 request.getEmail());
+             // Still return success to prevent email enumeration
+             return response;
+         }
+
+         if (!user.getIsActive()) {
+             log.warn("Password reset requested for inactive user: {}",
+                 request.getEmail());
+             return response;
+         }
+
+         // Invalidate all previous tokens for this user
+         tokenRepository.invalidateAllUserTokens(user.getId());
+
+         // Generate secure token
+         String token = generateSecureToken();
+
+         // Create new token
+         PasswordResetToken resetToken = PasswordResetToken.builder()
+                 .token(token)
+                 .user(user)
+                 .email(user.getEmail())
+                 .expiryDate(LocalDateTime.now()
+                     .plusMinutes(tokenExpiryMinutes))
+                 .isUsed(false)
+                 .ipAddress(ipAddress)
+                 .userAgent(userAgent)
+                 .build();
+
+         tokenRepository.save(resetToken);
+
+         // Get user's full name
+         String userName = getUserFullName(user);
+
+         // Send email
+         String resetLink = frontendUrl + "/reset-password?token=" + token;
+
+         emailService.sendPasswordResetEmail(
+             user.getEmail(),
+             userName,
+             resetLink,
+             tokenExpiryMinutes
+         );
+
+         log.info("Password reset link sent to: {}", user.getEmail());
+
+     } catch (Exception e) {
+         log.error("Failed to trigger password reset email for {}: {}", user.getEmail(), e.getMessage());
+         // Don't expose internal errors
+     }
+
+     return response;
+ }
+
+ @Override
+ public Map<String, Object> validateToken(String token) {
+     Map<String, Object> response = new HashMap<>();
+
+     PasswordResetToken resetToken = tokenRepository.findByToken(token)
+             .orElseThrow(() -> new HrmsAPIException(HttpStatus.BAD_REQUEST,
+                 "Invalid or expired reset link"));
+
+     if (resetToken.getIsUsed()) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "This reset link has already been used");
+     }
+
+     if (resetToken.isExpired()) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "This reset link has expired. Please request a new one.");
+     }
+
+     response.put("valid", true);
+     response.put("email", maskEmail(resetToken.getEmail()));
+     response.put("expiresAt", resetToken.getExpiryDate());
+
+     return response;
+ }
+
+ @Override
+ @Transactional
+ public Map<String, Object> resetPassword(ResetPasswordRequest request) {
+     // Validate passwords match
+     if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "Passwords do not match");
+     }
+
+     // Find token
+     PasswordResetToken resetToken = tokenRepository
+             .findByToken(request.getToken())
+             .orElseThrow(() -> new HrmsAPIException(HttpStatus.BAD_REQUEST,
+                 "Invalid reset link"));
+
+     // Validate token
+     if (resetToken.getIsUsed()) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "This reset link has already been used");
+     }
+
+     if (resetToken.isExpired()) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "This reset link has expired");
+     }
+
+     // Get user
+     User user = resetToken.getUser();
+
+     // Check if new password is same as old
+     if (passwordEncoder.matches(request.getNewPassword(),
+             user.getPassword())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "New password cannot be same as current password");
+     }
+
+     // Update password
+     user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+     userRepository.save(user);
+
+     // Mark token as used
+     resetToken.setIsUsed(true);
+     resetToken.setUsedAt(LocalDateTime.now());
+     tokenRepository.save(resetToken);
+
+     // Send confirmation email
+     try {
+         String userName = getUserFullName(user);
+         emailService.sendPasswordChangedEmail(user.getEmail(), userName);
+     } catch (Exception e) {
+         log.error("Failed to send password change notification", e);
+     }
+
+     log.info("Password reset successful for user: {}", user.getUsername());
+
+     Map<String, Object> response = new HashMap<>();
+     response.put("success", true);
+     response.put("message", "Password has been reset successfully. " +
+                  "You can now login with your new password.");
+     return response;
+ }
+
+ @Override
+ @Transactional
+ public Map<String, Object> changePassword(String username,
+                                             ChangePasswordRequest request) {
+     // Validate passwords match
+     if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "New passwords do not match");
+     }
+
+     // Get user
+     User user = userRepository.findByUsername(username)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "User", "username", username));
+
+     // Verify current password
+     if (!passwordEncoder.matches(request.getCurrentPassword(),
+             user.getPassword())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "Current password is incorrect");
+     }
+
+     // Check if new password is same as old
+     if (passwordEncoder.matches(request.getNewPassword(),
+             user.getPassword())) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "New password cannot be same as current password");
+     }
+
+     // Update password
+     user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+     userRepository.save(user);
+
+     // Send confirmation email
+     try {
+         String userName = getUserFullName(user);
+         emailService.sendPasswordChangedEmail(user.getEmail(), userName);
+     } catch (Exception e) {
+         log.error("Failed to send confirmation email", e);
+     }
+
+     log.info("Password changed successfully for user: {}", username);
+
+     Map<String, Object> response = new HashMap<>();
+     response.put("success", true);
+     response.put("message", "Password changed successfully");
+     return response;
+ }
+
+ /**
+  * Scheduled task to cleanup expired tokens
+  * Runs every day at 2 AM
+  */
+ @Scheduled(cron = "0 0 2 * * ?")
+ @Transactional
+ public void cleanupExpiredTokens() {
+     try {
+         tokenRepository.deleteExpiredTokens(LocalDateTime.now());
+         log.info("Expired password reset tokens cleaned up");
+     } catch (Exception e) {
+         log.error("Failed to cleanup expired tokens", e);
+     }
+ }
+
+ private String generateSecureToken() {
+     // Generate a cryptographically secure random token
+     return UUID.randomUUID().toString().replace("-", "") +
+            UUID.randomUUID().toString().replace("-", "");
+ }
+
+ private String getUserFullName(User user) {
+     try {
+         Employee emp = employeeRepository.findByUser_Id(user.getId())
+                 .orElse(null);
+         if (emp != null) {
+             return emp.getFullName();
+         }
+     } catch (Exception e) {
+         log.warn("Could not fetch employee name", e);
+     }
+     return user.getUsername();
+ }
+
+ /**
+  * Mask email for security (e.g., john***@example.com)
+  */
+ private String maskEmail(String email) {
+     if (email == null || !email.contains("@")) return email;
+
+     String[] parts = email.split("@");
+     String localPart = parts[0];
+     String domain = parts[1];
+
+     if (localPart.length() <= 3) {
+         return localPart.charAt(0) + "***@" + domain;
+     }
+
+     return localPart.substring(0, 3) + "***@" + domain;
+ }
+}

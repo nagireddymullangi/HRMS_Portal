@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 export const formatDate = (date) => {
   if (!date) return '-';
   try {
-    return format(parseISO(date), 'DD-MM-YYYY');
+    return format(parseISO(date), 'dd-MM-yyyy');
   } catch {
     return date;
   }

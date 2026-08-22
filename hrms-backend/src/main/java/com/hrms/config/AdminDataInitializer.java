@@ -30,7 +30,7 @@ public class AdminDataInitializer {
          }
 
          String username = "admin";
-         String email = "admin@hrms.com";
+         String email = "ngireddymullangi@gmail.com";
          String rawPassword = "Admin@123";
 
          User admin = userRepository.findByUsername(username)

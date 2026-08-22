@@ -33,4 +33,11 @@ public interface EmailService {
 
  void sendExitConfirmationEmail(String to, String employeeName,
                                  String lastWorkingDate);
+//service/EmailService.java - Add these methods to interface
+
+void sendPasswordResetEmail(String to, String userName,
+                            String resetLink, int expiryMinutes);
+
+void sendPasswordChangedEmail(String to, String userName);
+ 
 }

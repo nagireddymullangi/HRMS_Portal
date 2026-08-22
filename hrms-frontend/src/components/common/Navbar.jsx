@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getInitials } from '../../utils/helpers';
+import { FiKey } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import NotificationBell from './NotificationBell';
 import {
   FiBell, FiLogOut, FiUser,
   FiChevronDown, FiMenu
@@ -34,12 +37,8 @@ const Navbar = ({ onToggleSidebar }) => {
       {/* Right - User Menu */}
       <div className="flex items-center gap-3">
         {/* Notifications */}
-        <button className="relative p-2 rounded-lg hover:bg-gray-100 
-                           transition-colors text-gray-600">
-          <FiBell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 
-                           bg-red-500 rounded-full"></span>
-        </button>
+        <NotificationBell />
+
 
         {/* User Dropdown */}
         <div className="relative">
@@ -108,6 +107,18 @@ const Navbar = ({ onToggleSidebar }) => {
                   <FiLogOut className="h-4 w-4" />
                   Sign Out
                 </button>
+
+              <Link
+                  to="/change-password"
+                  className="flex items-center gap-3 w-full px-4 py-2.5
+                  text-sm text-gray-700 hover:bg-gray-50
+                  transition-colors"
+                  onClick={() => setDropdownOpen(false)}
+              >
+  <FiKey className="h-4 w-4 text-gray-400" />
+  Change Password
+</Link>
+
               </div>
             </div>
           )}

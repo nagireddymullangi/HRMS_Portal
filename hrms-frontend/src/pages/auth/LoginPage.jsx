@@ -10,6 +10,7 @@ import {
 import { HiOutlineOfficeBuilding } from 'react-icons/hi';
 import { useAuth } from '../../context/AuthContext';
 import Loader from '../../components/common/Loader';
+import { Link } from 'react-router-dom';
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -249,10 +250,16 @@ const LoginPage = () => {
                     {errors.password.message}
                   </p>
                 )}
-                <a href="/forgot-password" 
-                className='block text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors'>
-                  Forgot Password?
-                </a>
+                
+              <div className="text-right">
+                <Link
+                      to="/forgot-password"
+                      className="text-sm text-blue-600 hover:text-blue-700
+                      font-medium transition-colors"
+      >
+                     Forgot password?
+                 </Link>
+              </div>
               </div>
 
               {/* Sign In Button */}

@@ -7,6 +7,8 @@ import {
 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 
+import { HiMegaphone } from 'react-icons/hi2';
+
 import { FiBarChart2, FiClock, FiTarget } from 'react-icons/fi';
 import { FiHardDrive, FiUserCheck, FiCamera } from 'react-icons/fi';
 
@@ -91,6 +93,14 @@ const adminNavLinks = [
   label: 'Face Enrollments', 
   icon: FiUserCheck
  },
+ { path: '/admin/announcements',
+   label: 'Announcements', 
+   icon: HiMegaphone
+ },
+{ path: '/admin/events', 
+  label: 'Events', 
+  icon: FiCalendar
+},
 ];
 
 // Employee Navigation Links
@@ -124,6 +134,13 @@ const employeeNavLinks = [
     label: 'Face Check-in', 
     icon: FiCamera 
   },
+  { path: '/employee/announcements', 
+    label: 'Announcements', 
+    icon: HiMegaphone 
+  },
+{ path: '/employee/events', 
+  label: 'Events', 
+  icon: FiCalendar },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {

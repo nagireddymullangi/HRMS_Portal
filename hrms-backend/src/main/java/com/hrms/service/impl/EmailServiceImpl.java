@@ -232,4 +232,56 @@ public class EmailServiceImpl implements EmailService {
          vars
      );
  }
+ 
+//service/impl/EmailServiceImpl.java - Add these implementations
+
+ @Override
+ public void sendPasswordResetEmail(String to, String userName,
+                                      String resetLink, int expiryMinutes) {
+
+     // If emails are disabled, log the reset link to the console for testing
+     if (!emailEnabled) {
+         log.info("=================================================");
+         log.info("📧 [DEV MODE] PASSWORD RESET LINK FOR: {}", to);
+         log.info("🔗 RESET LINK: {}", resetLink);
+         log.info("=================================================");
+         return;
+     }
+
+     try {
+         Map<String, Object> vars = new HashMap<>();
+         vars.put("userName", userName);
+         vars.put("resetLink", resetLink);
+         vars.put("expiryMinutes", expiryMinutes);
+
+         sendTemplateEmail(
+             to,
+             "🔐 Password Reset Request - " + companyName,
+             "email/password-reset",
+             vars
+         );
+     } catch (Exception e) {
+         log.error("Failed to send password reset email to {}: {}", to, e.getMessage());
+         // Log link to console as a fallback so testing isn't blocked
+         log.info("=================================================");
+         log.info("📧 [FALLBACK] PASSWORD RESET LINK FOR: {}", to);
+         log.info("🔗 RESET LINK: {}", resetLink);
+         log.info("=================================================");
+     }
+ }
+@Override
+public void sendPasswordChangedEmail(String to, String userName) {
+  Map<String, Object> vars = new HashMap<>();
+  vars.put("userName", userName);
+  vars.put("timestamp", java.time.LocalDateTime.now()
+      .format(java.time.format.DateTimeFormatter
+          .ofPattern("dd MMM yyyy, hh:mm a")));
+
+  sendTemplateEmail(
+      to,
+      "✅ Password Changed Successfully - " + companyName,
+      "email/password-changed",
+      vars
+  );
+}
 }
