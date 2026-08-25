@@ -28,8 +28,34 @@ const EmployeeManagement = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, reset, setValue,
+  const { register,watch, handleSubmit, reset, setValue,
           formState: { errors } } = useForm();
+
+  // Helper to safely format Date objects to YYYY-MM-DD without crashing
+const formatDate = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const selectedDob = watch('dateOfBirth');
+
+// Maximum DOB allowed (18 years ago from today)
+const today = new Date();
+const maxDob = formatDate(new Date(today.getFullYear() - 18, today.getMonth(), today.getDate()));
+
+// Minimum DOJ allowed (18 years from selected DOB)
+const getMinJoiningDate = () => {
+  if (!selectedDob) return '';
+  const dob = new Date(selectedDob);
+  if (isNaN(dob.getTime())) return '';
+  dob.setFullYear(dob.getFullYear() + 18);
+  return formatDate(dob);
+};
 
   useEffect(() => {
     fetchAll();
@@ -179,7 +205,7 @@ const EmployeeManagement = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {emp.employeeId}
+                      {emp.employeeId ? emp.employeeId.replace(/^EMP/i,'PTS') : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {emp.departmentName || '-'}
@@ -237,42 +263,53 @@ const EmployeeManagement = () => {
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name *
-              </label>
-              <input
-                {...register('firstName', {
-                  required: 'First name is required'
-                })}
-                className={`input-field ${
-                  errors.firstName ? 'input-error' : ''}`}
-                placeholder="First name"
-              />
-              {errors.firstName && (
-                <p className="text-xs text-red-600 mt-1">
-                  {errors.firstName.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name *
-              </label>
-              <input
-                {...register('lastName', {
-                  required: 'Last name is required'
-                })}
-                className={`input-field ${
-                  errors.lastName ? 'input-error' : ''}`}
-                placeholder="Last name"
-              />
-              {errors.lastName && (
-                <p className="text-xs text-red-600 mt-1">
-                  {errors.lastName.message}
-                </p>
-              )}
-            </div>
+            {/* First Name */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    First Name *
+  </label>
+  <input
+    type="text"
+    placeholder="First name"
+    className="input-field"
+    {...register('firstName', {
+      required: 'First name is required',
+      pattern: {
+        value: /^[a-zA-Z\s]+$/,
+        message: 'First name can only contain letters and spaces'
+      },
+      minLength: {
+        value: 2,
+        message: 'Must be at least 2 characters'
+      }
+    })}
+  />
+  {errors.firstName && (
+    <span className="text-red-500 text-xs mt-1 block">{errors.firstName.message}</span>
+  )}
+</div>
+
+{/* Last Name */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Last Name *
+  </label>
+  <input
+    type="text"
+    placeholder="Last name"
+    className="input-field"
+    {...register('lastName', {
+      required: 'Last name is required',
+      pattern: {
+        value: /^[a-zA-Z\s]+$/,
+        message: 'Last name can only contain letters and spaces'
+      }
+    })}
+  />
+  {errors.lastName && (
+    <span className="text-red-500 text-xs mt-1 block">{errors.lastName.message}</span>
+  )}
+</div>
           </div>
 
           <div>
@@ -344,7 +381,12 @@ const EmployeeManagement = () => {
                 Phone
               </label>
               <input
-                {...register('phone')}
+                {...register('phone',{required : 'Phone number is required',
+                  pattern: {
+                    value: /^[6-9]\d{9}$/,
+                    message: 'Invalid phone number'
+                  }
+                })}
                 className="input-field"
                 placeholder="Phone number"
               />
@@ -376,29 +418,57 @@ const EmployeeManagement = () => {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Joining
-              </label>
-              <input
-                type="date"
-                {...register('dateOfJoining')}
-                className="input-field"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                {...register('dateOfBirth')}
-                className="input-field"
-              />
-            </div>
+            {/* Date of Birth Input */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Date of Birth *
+  </label>
+  <input
+    type="date"
+    max={maxDob}
+    {...register('dateOfBirth', {
+      required: 'Date of Birth is required',
+      validate: (val) => {
+        const dob = new Date(val);
+        const minAgeDate = new Date();
+        minAgeDate.setFullYear(minAgeDate.getFullYear() - 18);
+        return dob <= minAgeDate || 'Age must be at least 18 years old';
+      }
+    })}
+    className="input-field"
+  />
+  {errors.dateOfBirth && (
+    <span className="text-red-500 text-xs mt-1">{errors.dateOfBirth.message}</span>
+  )}
+</div>
+
+{/* Date of Joining Input */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Date of Joining *
+  </label>
+  <input
+    type="date"
+    disabled={!selectedDob}
+    min={getMinJoiningDate()}
+    {...register('dateOfJoining', {
+      required: 'Date of Joining is required',
+      validate: (val) => {
+        if (!selectedDob) return 'Please select Date of Birth first';
+        const doj = new Date(val);
+        const minDoj = new Date(selectedDob);
+        minDoj.setFullYear(minDoj.getFullYear() + 18);
+        return doj >= minDoj || 'Date of joining must be at least 18 years after DOB';
+      }
+    })}
+    className={`input-field ${!selectedDob ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+  />
+  {errors.dateOfJoining && (
+    <span className="text-red-500 text-xs mt-1">{errors.dateOfJoining.message}</span>
+  )}
+</div>
+
             {editingEmp && (
               <div>
                 <label className="block text-sm font-medium 
