@@ -38,7 +38,7 @@ const EventsManagement = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, reset, setValue, watch,
+  const { register, handleSubmit, reset, setValue,getValues, watch,
           formState: { errors } } = useForm();
 
   const targetAudience = watch('targetAudience', 'ALL');
@@ -115,6 +115,13 @@ const EventsManagement = () => {
       toast.error('Delete failed');
     }
   };
+
+  const getCurrentDateTime = () =>{
+    const now =new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0,16);
+  };
+  const minDateTime = getCurrentDateTime();
 
   return (
     <Layout>
@@ -218,10 +225,16 @@ const EventsManagement = () => {
           <div>
             <label className="block text-sm font-medium mb-1">Title *</label>
             <input
-              {...register('title', { required: 'Required' })}
+              {...register('title', { required: 'Required',
+                pattern: {
+                  value: /^[A-Za-z\s]+$/,
+                  message:"Title must contain only letters and spaces"
+                }
+               })}
               className={`input-field ${errors.title ? 'input-error' : ''}`}
               placeholder="Event title"
             />
+            {errors.title && <p className='text-red-500 text-xs mt-1'>{errors.title.message}</p>}
           </div>
 
           <div>
@@ -264,9 +277,20 @@ const EventsManagement = () => {
               </label>
               <input
                 type="datetime-local"
-                {...register('startDateTime', { required: 'Required' })}
-                className="input-field"
+                min={minDateTime}
+                {...register('startDateTime', { required: 'Required',
+                  validate: (value) => {
+                    if (new Date(value) < new Date()){
+                      return "Start date cannot be in the past";
+                    }
+                    return true;
+                  }
+                 })}
+                className={"input-field ${errors.startDateTime ? 'input-error' : ''}"}
               />
+              {errors.startDateTime && (
+                <p className='text-red-500 text-xs mt-1'>{errors.startDateTime.message}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
@@ -274,9 +298,21 @@ const EventsManagement = () => {
               </label>
               <input
                 type="datetime-local"
-                {...register('endDateTime', { required: 'Required' })}
-                className="input-field"
+                min={minDateTime}
+                {...register('endDateTime', { required: 'Required',
+                  validate: (value) => {
+                    const start = getValues('startDateTime');
+                    if (new Date(value) < new Date()){
+                      return "End Date  & Time must be after the start date & time";
+                    }
+                    return true;
+                  }
+                 })}
+                className={"input-field ${errors.endDateTime ? 'input-error':''}"}
               />
+              {errors.endDateTime && (
+                <p className='text-red-500 text-xs mt-1'>{errors.endDateTime.message}</p>
+              )}
             </div>
           </div>
 

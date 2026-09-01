@@ -1,0 +1,238 @@
+
+//service/impl/GrievanceServiceImpl.java
+package com.hrms.service.impl;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.hrms.dto.response.CommentInfo;
+import com.hrms.dto.response.GrievanceResponse;
+import com.hrms.exception.ResourceNotFoundException;
+import com.hrms.model.Grievance;
+import com.hrms.model.GrievanceComment;
+import com.hrms.model.User;
+import com.hrms.repository.EmployeeRepository;
+import com.hrms.repository.GrievanceCommentRepository;
+import com.hrms.repository.GrievanceRepository;
+import com.hrms.repository.UserRepository;
+import com.hrms.service.GrievanceService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class GrievanceServiceImpl implements GrievanceService {
+
+ private final GrievanceRepository grievanceRepository;
+ private final GrievanceCommentRepository commentRepository;
+ private final EmployeeRepository employeeRepository;
+ private final UserRepository userRepository;
+
+ @Override
+ @Transactional
+ public GrievanceResponse create(Grievance grievance) {
+     grievance.setTicketNumber(generateTicketNumber());
+     grievance.setStatus(Grievance.Status.OPEN);
+     return mapToResponse(grievanceRepository.save(grievance));
+ }
+
+ @Override
+ public GrievanceResponse getById(Long id) {
+     return mapToResponse(grievanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Grievance", "id", id)));
+ }
+
+ @Override
+ public List<GrievanceResponse> getAll() {
+     return grievanceRepository.findAllByOrderByCreatedAtDesc()
+             .stream().map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<GrievanceResponse> getByEmployee(Long employeeId) {
+     return grievanceRepository
+             .findByEmployeeIdOrderByCreatedAtDesc(employeeId)
+             .stream().map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<GrievanceResponse> getByStatus(String status) {
+     return grievanceRepository
+             .findByStatusOrderByCreatedAtDesc(Grievance.Status.valueOf(status))
+             .stream().map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<GrievanceResponse> getMyAssigned(Long userId) {
+     return grievanceRepository.findByAssignedToOrderByCreatedAtDesc(userId)
+             .stream().map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ @Transactional
+ public GrievanceResponse updateStatus(Long id, String status) {
+     Grievance g = grievanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Grievance", "id", id));
+     g.setStatus(Grievance.Status.valueOf(status));
+     return mapToResponse(grievanceRepository.save(g));
+ }
+
+ @Override
+ @Transactional
+ public GrievanceResponse assign(Long id, Long userId) {
+     Grievance g = grievanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Grievance", "id", id));
+     g.setAssignedTo(userId);
+     g.setStatus(Grievance.Status.UNDER_REVIEW);
+     return mapToResponse(grievanceRepository.save(g));
+ }
+
+ @Override
+ @Transactional
+ public GrievanceResponse resolve(Long id, String resolution, Long userId) {
+     Grievance g = grievanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Grievance", "id", id));
+
+     g.setResolution(resolution);
+     g.setResolvedAt(LocalDateTime.now());
+     g.setResolvedBy(userId);
+     g.setStatus(Grievance.Status.RESOLVED);
+     return mapToResponse(grievanceRepository.save(g));
+ }
+
+ @Override
+ @Transactional
+ public GrievanceResponse escalate(Long id) {
+     Grievance g = grievanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Grievance", "id", id));
+     g.setStatus(Grievance.Status.ESCALATED);
+     g.setPriority(Grievance.Priority.HIGH);
+     return mapToResponse(grievanceRepository.save(g));
+ }
+
+ @Override
+ @Transactional
+ public GrievanceResponse submitFeedback(Long id, Integer rating,
+                                           String feedback) {
+     Grievance g = grievanceRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Grievance", "id", id));
+
+     g.setSatisfactionRating(rating);
+     g.setFeedback(feedback);
+     g.setStatus(Grievance.Status.CLOSED);
+     return mapToResponse(grievanceRepository.save(g));
+ }
+
+ @Override
+ @Transactional
+ public GrievanceComment addComment(Long grievanceId, Long userId,
+                                      String comment, Boolean isInternal) {
+     Grievance g = grievanceRepository.findById(grievanceId)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Grievance", "id", grievanceId));
+
+     GrievanceComment c = GrievanceComment.builder()
+             .grievance(g)
+             .userId(userId)
+             .comment(comment)
+             .isInternal(isInternal != null ? isInternal : false)
+             .build();
+     return commentRepository.save(c);
+ }
+
+ @Override
+ public List<GrievanceComment> getComments(Long grievanceId) {
+     return commentRepository
+             .findByGrievanceIdOrderByCreatedAtAsc(grievanceId);
+ }
+
+ @Override
+ public Map<String, Object> getStatistics() {
+     Map<String, Object> stats = new HashMap<>();
+     stats.put("total", grievanceRepository.count());
+     stats.put("open",
+         grievanceRepository.countByStatus(Grievance.Status.OPEN));
+     stats.put("inProgress",
+         grievanceRepository.countByStatus(Grievance.Status.IN_PROGRESS));
+     stats.put("resolved",
+         grievanceRepository.countByStatus(Grievance.Status.RESOLVED));
+     stats.put("closed",
+         grievanceRepository.countByStatus(Grievance.Status.CLOSED));
+     stats.put("escalated",
+         grievanceRepository.countByStatus(Grievance.Status.ESCALATED));
+     return stats;
+ }
+
+ private String generateTicketNumber() {
+     long count = grievanceRepository.count() + 1;
+     return String.format("GRV-%d-%05d", LocalDate.now().getYear(), count);
+ }
+
+ private GrievanceResponse mapToResponse(Grievance g) {
+     String assignedToName = "";
+     if (g.getAssignedTo() != null) {
+         assignedToName = userRepository.findById(g.getAssignedTo())
+                 .map(User::getUsername).orElse("");
+     }
+
+     List<CommentInfo> comments = commentRepository
+             .findByGrievanceIdOrderByCreatedAtAsc(g.getId())
+             .stream().map(c -> {
+                 String userName = userRepository.findById(c.getUserId())
+                         .map(User::getUsername).orElse("Unknown");
+                 return CommentInfo.builder()
+                         .id(c.getId())
+                         .userId(c.getUserId())
+                         .userName(userName)
+                         .comment(c.getComment())
+                         .isInternal(c.getIsInternal())
+                         .createdAt(c.getCreatedAt())
+                         .build();
+             }).collect(Collectors.toList());
+
+     return GrievanceResponse.builder()
+             .id(g.getId())
+             .ticketNumber(g.getTicketNumber())
+             .employeeId(g.getEmployee().getId())
+             .employeeName(g.getIsAnonymous() ? "Anonymous"
+                 : g.getEmployee().getFullName())
+             .employeeCode(g.getIsAnonymous() ? "***"
+                 : g.getEmployee().getEmployeeId())
+             .category(g.getCategory().name())
+             .subject(g.getSubject())
+             .description(g.getDescription())
+             .priority(g.getPriority().name())
+             .isAnonymous(g.getIsAnonymous())
+             .status(g.getStatus().name())
+             .assignedTo(g.getAssignedTo())
+             .assignedToName(assignedToName)
+             .resolution(g.getResolution())
+             .resolvedAt(g.getResolvedAt())
+             .resolvedBy(g.getResolvedBy())
+             .satisfactionRating(g.getSatisfactionRating())
+             .feedback(g.getFeedback())
+             .comments(comments)
+             .createdAt(g.getCreatedAt())
+             .updatedAt(g.getUpdatedAt())
+             .build();
+ }
+}

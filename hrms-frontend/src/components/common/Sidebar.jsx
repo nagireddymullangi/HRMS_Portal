@@ -3,14 +3,18 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   FiHome, FiUsers, FiGrid, FiCalendar,
-  FiFileText,FiUserX,FiFile, FiDollarSign, FiX, FiLogOut
+  FiFileText,FiUserX,FiFile, FiX, FiLogOut
 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
-
+import { FiAlertCircle } from 'react-icons/fi';
 import { HiMegaphone } from 'react-icons/hi2';
+import { FiBook, FiShield } from 'react-icons/fi';
 
 import { FiBarChart2, FiClock, FiTarget } from 'react-icons/fi';
 import { FiHardDrive, FiUserCheck, FiCamera } from 'react-icons/fi';
+import { FiUserPlus, FiBriefcase } from 'react-icons/fi';
+import { FiFolder } from 'react-icons/fi';
+import { FiZap } from 'react-icons/fi';
 
 import { useEffect, useState } from 'react';
  import {
@@ -101,6 +105,28 @@ const adminNavLinks = [
   label: 'Events', 
   icon: FiCalendar
 },
+{ path: '/admin/onboarding',
+    label: 'Onboarding', 
+    icon: FiUserPlus 
+  },
+{ path: '/admin/jobs', 
+  label: 'Job Postings', 
+  icon: FiBriefcase 
+},
+{ path: '/admin/candidates', 
+  label: 'Candidates', 
+  icon: FiUsers 
+},
+{ path: '/admin/projects', label: 'Projects', icon: FiFolder },
+{ path: '/admin/timesheets', label: 'Timesheet Approvals', icon: FiClock },
+{ path: '/admin/expenses', label: 'Expenses', icon: FaRupeeSign },
+{ path: '/admin/grievances', label: 'Grievances', icon: FiAlertCircle },
+{ path: '/admin/training', label: 'Training', icon: FiBook },
+{ path: '/admin/policies', label: 'HR Policies', icon: FiShield },
+{ path: '/admin/settlements', label: 'F&F Settlements', icon: FaRupeeSign },
+{ path: '/admin/compliance', label: 'Compliance', icon: FiShield },
+{ path: '/admin/analytics', label: 'HR Analytics', icon: FiBarChart2 },
+{ path: '/admin/ai-insights', label: 'AI Insights', icon: FiZap },
 ];
 
 // Employee Navigation Links
@@ -140,7 +166,17 @@ const employeeNavLinks = [
   },
 { path: '/employee/events', 
   label: 'Events', 
-  icon: FiCalendar },
+  icon: FiCalendar
+ },
+  { path: '/employee/onboarding', 
+    label: 'My Onboarding', 
+    icon: FiUserPlus 
+  },
+  { path: '/employee/timesheet', label: 'My Timesheet', icon: FiClock },
+  { path: '/employee/expenses', label: 'My Expenses', icon: FaRupeeSign },
+{ path: '/employee/grievances', label: 'Grievances', icon: FiAlertCircle },
+{ path: '/employee/learning', label: 'My Learning', icon: FiBook },
+{ path: '/employee/policies', label: 'HR Policies', icon: FiShield },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {

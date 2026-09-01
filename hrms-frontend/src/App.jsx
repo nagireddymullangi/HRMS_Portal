@@ -6,7 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, AdminRoute, EmployeeRoute } from './components/common/ProtectedRoute';
 import  PWAInstallPrompt  from './components/common/PWAInstallPrompt';
 import  NetworkStatus  from './components/common/NetworkStatus';
-
+import AIChatbot from './components/common/AIChatbot';
 import Announcements from './pages/admin/Announcements';
 import EventsManagement from './pages/admin/EventsManagement';
 import MyAnnouncements from './pages/employee/MyAnnouncements';
@@ -34,7 +34,26 @@ import FaceEnrollments from './pages/admin/FaceEnrollments';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import ChangePassword from './pages/common/ChangePassword';
-
+import OnboardingManagement from './pages/admin/OnboardingManagement';
+import OnboardingDetail from './pages/admin/OnboardingDetail';
+import MyOnboarding from './pages/employee/MyOnboarding';
+import JobPostings from './pages/admin/JobPostings';
+import Candidates from './pages/admin/Candidates';
+import ApplicationsPipeline from './pages/admin/ApplicationsPipeline';
+import ProjectsManagement from './pages/admin/ProjectsManagement';
+import ProjectDetail from './pages/admin/ProjectDetail';
+import TimesheetApprovals from './pages/admin/TimesheetApprovals';
+import MyTimesheet from './pages/employee/MyTimesheet';
+import ExpenseManagement from './pages/admin/ExpenseManagement';
+import GrievanceManagement from './pages/admin/GrievanceManagement';
+import MyExpenses from './pages/employee/MyExpenses';
+import MyGrievances from './pages/employee/MyGrievances';
+import TrainingManagement from './pages/admin/TrainingManagement';
+import PoliciesManagement from './pages/admin/PoliciesManagement';
+import SettlementManagement from './pages/admin/SettlementManagement';
+import ComplianceManagement from './pages/admin/ComplianceManagement';
+import HRAnalytics from './pages/admin/HRAnalytics';
+import AIInsights from './pages/admin/AIInsights';
 
 // Employee Pages
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
@@ -43,11 +62,16 @@ import MyLeave from './pages/employee/MyLeave';
 import MyPayroll from './pages/employee/MyPayroll';
 import BankDetails from './pages/employee/BankDetails';
 import FaceCheckIn from './pages/employee/FaceCheckIn';
+import MyLearning from './pages/employee/MyLearning';
+import MyPolicies from './pages/employee/MyPolicies';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
+        <NetworkStatus />
+        <PWAInstallPrompt />
+        <AIChatbot />
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -75,6 +99,22 @@ function App() {
             <Route path="/admin/face-enrollments" element={<FaceEnrollments />} />
             <Route path="/admin/announcements" element={<Announcements />} />
             <Route path="/admin/events" element={<EventsManagement />} />
+            <Route path="/admin/onboarding" element={<OnboardingManagement />} />
+            <Route path="/admin/onboarding/:id" element={<OnboardingDetail />} />
+            <Route path="/admin/jobs" element={<JobPostings />} />
+            <Route path="/admin/candidates" element={<Candidates />} />
+            <Route path="/admin/jobs/:jobId/applications" element={<ApplicationsPipeline />} />
+            <Route path="/admin/projects" element={<ProjectsManagement />} />
+            <Route path="/admin/projects/:id" element={<ProjectDetail />} />
+            <Route path="/admin/timesheets" element={<TimesheetApprovals />} />
+            <Route path="/admin/expenses" element={<ExpenseManagement />} />
+            <Route path="/admin/grievances" element={<GrievanceManagement />} />
+            <Route path="/admin/training" element={<TrainingManagement />} />
+            <Route path="/admin/policies" element={<PoliciesManagement />} />
+            <Route path="/admin/settlements" element={<SettlementManagement />} />
+            <Route path="/admin/compliance" element={<ComplianceManagement />} />
+            <Route path="/admin/analytics" element={<HRAnalytics />} />
+            <Route path="/admin/ai-insights" element={<AIInsights />} />
           </Route>
 
           {/* Employee Routes */}
@@ -87,6 +127,12 @@ function App() {
             <Route path="/employee/face-check-in" element={<FaceCheckIn />} />
             <Route path="/employee/announcements" element={<MyAnnouncements />} />
             <Route path="/employee/events" element={<MyEvents />} />
+            <Route path="/employee/onboarding" element={<MyOnboarding />} />
+            <Route path="/employee/timesheet" element={<MyTimesheet />} />
+            <Route path="/employee/expenses" element={<MyExpenses />} />
+            <Route path="/employee/grievances" element={<MyGrievances />} />
+            <Route path="/employee/learning" element={<MyLearning />} />
+            <Route path="/employee/policies" element={<MyPolicies />} />
           </Route>
 
           {/* 404 */}

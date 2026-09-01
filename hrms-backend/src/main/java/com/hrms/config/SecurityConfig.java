@@ -85,7 +85,24 @@ public class SecurityConfig {
              .requestMatchers("/api/announcements/**").hasAnyRole("ADMIN","EMPLOYEE")
              .requestMatchers("/api/events/**").hasAnyRole("ADMIN","EMPLOYEE")
              .requestMatchers("/api/notifications/**").hasAnyRole("ADMIN","EMPLOYEE")
+          // Add to SecurityConfig
+             .requestMatchers("/api/onboarding/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/recruitment/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/recruitment/jobs/open").permitAll()
              
+          // Add to SecurityConfig
+             .requestMatchers("/api/projects/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/timesheets/**").hasAnyRole("ADMIN","EMPLOYEE")
+          // Add to SecurityConfig.java
+             .requestMatchers("/api/expenses/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/grievances/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/training/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/policies/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/settlements/**").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/compliance/**").hasRole("ADMIN")
+             .requestMatchers("/api/analytics/**").hasRole("ADMIN")
+             .requestMatchers("/api/ai-insights/chatbot").hasAnyRole("ADMIN","EMPLOYEE")
+             .requestMatchers("/api/ai-insights/**").hasRole("ADMIN")
              // All other requests need authentication
              .anyRequest().authenticated()
          )

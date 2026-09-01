@@ -189,7 +189,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public String generateEmployeeId() {
         long count = employeeRepository.count() + 1;
-        return String.format("PTS%04d", count);
+        return String.format("PTS%03d", count);
     }
 
     public EmployeeResponse mapToResponse(Employee emp) {
