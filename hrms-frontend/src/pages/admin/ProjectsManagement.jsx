@@ -118,6 +118,13 @@ const ProjectsManagement = () => {
     CANCELLED: 'bg-red-100 text-red-700',
   };
 
+  const getCurrentDateTime = () =>{
+    const now =new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0,16);
+  };
+  const minDateTime = getCurrentDateTime();
+
   return (
     <Layout>
       <PageHeader
@@ -322,20 +329,43 @@ const ProjectsManagement = () => {
                 Start Date
               </label>
               <input
-                type="date"
-                {...register('startDate')}
-                className="input-field"
+                type="datetime-local"
+                min={minDateTime}
+                {...register('startDateTime', { required: 'Required',
+                  validate: (value) => {
+                    if (new Date(value) < new Date()){
+                      return "Start date cannot be in the past";
+                    }
+                    return true;
+                  }
+                 })}
+                className={"input-field ${errors.startDateTime ? 'input-error' : ''}"}
               />
+              {errors.startDateTime && (
+                <p className='text-red-500 text-xs mt-1'>{errors.startDateTime.message}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
                 End Date
               </label>
               <input
-                type="date"
-                {...register('endDate')}
-                className="input-field"
+                type="datetime-local"
+                min={minDateTime}
+                {...register('endDateTime', { required: 'Required',
+                  validate: (value) => {
+                    const start = getValues('startDateTime');
+                    if (new Date(value) < new Date()){
+                      return "End Date  & Time must be after the start date & time";
+                    }
+                    return true;
+                  }
+                 })}
+                className={"input-field ${errors.endDateTime ? 'input-error':''}"}
               />
+              {errors.endDateTime && (
+                <p className='text-red-500 text-xs mt-1'>{errors.endDateTime.message}</p>
+              )}
             </div>
 
             <div>
@@ -344,7 +374,8 @@ const ProjectsManagement = () => {
               </label>
               <input
                 type="number"
-                step="0.5"
+                step="1"
+                min="1"
                 {...register('estimatedHours')}
                 className="input-field"
               />
@@ -355,7 +386,8 @@ const ProjectsManagement = () => {
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
+                min="0"
                 {...register('budget')}
                 className="input-field"
               />
@@ -367,7 +399,8 @@ const ProjectsManagement = () => {
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
+                min="0"
                 {...register('hourlyRate')}
                 className="input-field"
               />

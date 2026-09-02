@@ -140,7 +140,7 @@ const GrievanceManagement = () => {
           { label: 'Open', value: stats.open, color: 'yellow' },
           { label: 'In Progress', value: stats.inProgress, color: 'purple' },
           { label: 'Resolved', value: stats.resolved, color: 'green' },
-          { label: 'Closed', value: stats.closed, color: 'gray' },
+          { label: 'Closed', value: stats.closed, color: 'blue' },
           { label: 'Escalated', value: stats.escalated, color: 'red' },
         ].map(s => (
           <div key={s.label} className={`card bg-gradient-to-br

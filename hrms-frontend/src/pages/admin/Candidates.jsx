@@ -265,6 +265,7 @@ const Candidates = () => {
               <input
                 type="number"
                 step="0.5"
+                min="0"
                 {...register('totalExperience')}
                 className="input-field"
               />
@@ -275,6 +276,8 @@ const Candidates = () => {
               </label>
               <input
                 type="number"
+                min="0"
+                step="0"
                 {...register('currentSalary')}
                 className="input-field"
               />
@@ -285,6 +288,8 @@ const Candidates = () => {
               </label>
               <input
                 type="number"
+                min="0"
+                step="1"
                 {...register('expectedSalary')}
                 className="input-field"
               />
@@ -298,6 +303,7 @@ const Candidates = () => {
               </label>
               <input
                 type="number"
+                min="0"
                 {...register('noticePeriod')}
                 className="input-field"
               />

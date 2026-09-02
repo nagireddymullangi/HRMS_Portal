@@ -14,6 +14,7 @@ import EmptyState from '../../components/common/EmptyState';
 import Loader from '../../components/common/Loader';
 import expenseService from '../../services/expenseService';
 import { formatDate, formatCurrency } from '../../utils/helpers';
+import { FaRupeeSign } from 'react-icons/fa';
 
 const TABS = ['CLAIMS', 'CATEGORIES'];
 
@@ -186,6 +187,9 @@ const ExpenseManagement = () => {
                         text-white">
           <p className="text-sm opacity-90">Total Claims</p>
           <p className="text-3xl font-bold mt-2">{stats.totalClaims || 0}</p>
+          <p className="text-xs opacity-75 mt-1">
+            {formatCurrency(stats.totalClaimedAmount)}
+          </p>
         </div>
       </div>
 
@@ -228,7 +232,7 @@ const ExpenseManagement = () => {
           ) : claims.length === 0 ? (
             <div className="card">
               <EmptyState
-                icon={FiDollarSign}
+                icon={FaRupeeSign}
                 title="No Claims"
                 description={`No ${filter.toLowerCase()} claims`}
               />
@@ -552,7 +556,8 @@ const ExpenseManagement = () => {
             </label>
             <input
               type="number"
-              step="0.01"
+              step="1"
+              min="0"
               {...register('maxAmount')}
               className="input-field"
               placeholder="Leave empty for no limit"

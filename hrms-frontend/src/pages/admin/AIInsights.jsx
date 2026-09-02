@@ -11,6 +11,7 @@ import PageHeader from '../../components/common/PageHeader';
 import Loader from '../../components/common/Loader';
 import aiService from '../../services/aiService';
 import { formatCurrency, getInitials } from '../../utils/helpers';
+import { FaRupeeSign } from 'react-icons/fa';
 
 const AIInsights = () => {
   const [data, setData] = useState(null);
@@ -315,7 +316,7 @@ const AIInsights = () => {
           {/* Salary Benchmarks */}
           <div className="card">
             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FiDollarSign /> Salary Benchmarks by Designation
+              <FaRupeeSign /> Salary Benchmarks by Designation
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full">

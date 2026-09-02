@@ -122,6 +122,13 @@ const TrainingManagement = () => {
     CANCELLED: 'bg-red-100 text-red-700',
   };
 
+  const getCurrentDateTime = () =>{
+    const now =new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0,16);
+  };
+  const minDateTime = getCurrentDateTime();
+
   return (
     <Layout>
       <PageHeader
@@ -322,26 +329,30 @@ const TrainingManagement = () => {
               <label className="block text-sm font-medium mb-1">Duration (hrs)</label>
               <input
                 type="number"
-                step="0.5"
+                step="1"
+                min="1"
                 {...register('durationHours')}
-                className="input-field"
+                className="input-field" defaultValue={1}
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Max Participants</label>
               <input
                 type="number"
+                step="1"
+                min="1"
                 {...register('maxParticipants')}
-                className="input-field"
+                className="input-field" defaultValue={1}
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Cost/Person</label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
+                min="0"
                 {...register('costPerParticipant')}
-                className="input-field"
+                className="input-field" defaultValue={0}
               />
             </div>
           </div>
@@ -349,22 +360,75 @@ const TrainingManagement = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Start Date</label>
-              <input type="date" {...register('startDate')} className="input-field" />
+              <input
+                type="datetime-local"
+                min={minDateTime}
+                {...register('startDateTime', { required: 'Required',
+                  validate: (value) => {
+                    if (new Date(value) < new Date()){
+                      return "Start date cannot be in the past";
+                    }
+                    return true;
+                  }
+                 })}
+                className={"input-field ${errors.startDateTime ? 'input-error' : ''}"}
+              />
+              {errors.startDateTime && (
+                <p className='text-red-500 text-xs mt-1'>{errors.startDateTime.message}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">End Date</label>
-              <input type="date" {...register('endDate')} className="input-field" />
+              <input
+                type="datetime-local"
+                min={minDateTime}
+                {...register('endDateTime', { required: 'Required',
+                  validate: (value) => {
+                    const start = getValues('startDateTime');
+                    if (new Date(value) < new Date()){
+                      return "End Date  & Time must be after the start date & time";
+                    }
+                    return true;
+                  }
+                 })}
+                className={"input-field ${errors.endDateTime ? 'input-error':''}"}
+              />
+              {errors.endDateTime && (
+                <p className='text-red-500 text-xs mt-1'>{errors.endDateTime.message}</p>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Trainer Name</label>
-              <input {...register('trainerName')} className="input-field" />
+              <input {...register('trainerName',{
+                required: 'Trainer name is required',
+                minLength: { value: 2, message: 'Namemust be at least 3 characters'},
+                pattern: {
+                  value: /^[a-zA-Z\s]+$/,
+                  message: "Trainer name should contain letters only"
+                }
+              })}
+               className="input-field" 
+              />
+              {errors. trainerName && (
+                <span className='text-red-500 text-xs mt-1 block'>{errors.trainerName.message}</span>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Trainer Email</label>
-              <input {...register('trainerEmail')} className="input-field" />
+              <input {...register('trainerEmail',{
+                required: 'Trainer Email is Required',
+                pattern: {
+                  value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                  message: 'Enter a valid email address'
+                }
+              })} className="input-field" 
+              />
+              {errors.trainerEmail && (
+                <span className='text-red-500 text-xs mt-1 block'>{errors.trainerEmail.message}</span>
+              )}
             </div>
           </div>
 

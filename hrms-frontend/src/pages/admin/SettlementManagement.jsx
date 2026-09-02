@@ -467,42 +467,42 @@ const SettlementManagement = () => {
                 <label className="block text-xs font-medium mb-1">
                   Pending Salary
                 </label>
-                <input type="number" step="0.01" {...register('pendingSalary')}
+                <input type="number" step="1" min="0" {...register('pendingSalary')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Pending Bonus
                 </label>
-                <input type="number" step="0.01" {...register('pendingBonus')}
+                <input type="number" step="1" min="0" {...register('pendingBonus')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Leave Encashment
                 </label>
-                <input type="number" step="0.01" {...register('leaveEncashment')}
+                <input type="number" step="1" min="0" {...register('leaveEncashment')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Leave Days
                 </label>
-                <input type="number" {...register('leaveEncashmentDays')}
+                <input type="number" step="1" min="0"{...register('leaveEncashmentDays')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Gratuity
                 </label>
-                <input type="number" step="0.01" {...register('gratuity')}
+                <input type="number" step="1" min="0" {...register('gratuity')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Other Earnings
                 </label>
-                <input type="number" step="0.01" {...register('otherEarnings')}
+                <input type="number" step="1" min="0" {...register('otherEarnings')}
                        className="input-field" defaultValue={0} />
               </div>
               <div className="col-span-2">
@@ -524,42 +524,42 @@ const SettlementManagement = () => {
                 <label className="block text-xs font-medium mb-1">
                   Tax Deduction
                 </label>
-                <input type="number" step="0.01" {...register('taxDeduction')}
+                <input type="number" step="1" min="0" {...register('taxDeduction')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   PF Deduction
                 </label>
-                <input type="number" step="0.01" {...register('pfDeduction')}
+                <input type="number" step="1" min="0" {...register('pfDeduction')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Loan Recovery
                 </label>
-                <input type="number" step="0.01" {...register('loanRecovery')}
+                <input type="number" step="1" min="0" {...register('loanRecovery')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Advance Recovery
                 </label>
-                <input type="number" step="0.01" {...register('advanceRecovery')}
+                <input type="number" step="1" min="0" {...register('advanceRecovery')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Asset Recovery
                 </label>
-                <input type="number" step="0.01" {...register('assetRecovery')}
+                <input type="number" step="1" min="0" {...register('assetRecovery')}
                        className="input-field" defaultValue={0} />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
                   Notice Period Recovery
                 </label>
-                <input type="number" step="0.01"
+                <input type="number" step="1" min="0"
                        {...register('noticePeriodRecovery')}
                        className="input-field" defaultValue={0} />
               </div>
@@ -567,7 +567,7 @@ const SettlementManagement = () => {
                 <label className="block text-xs font-medium mb-1">
                   Other Deductions
                 </label>
-                <input type="number" step="0.01" {...register('otherDeductions')}
+                <input type="number" step="1" min="0" {...register('otherDeductions')}
                        className="input-field" defaultValue={0} />
                 <input {...register('otherDeductionsNote')}
                        className="input-field mt-2"
