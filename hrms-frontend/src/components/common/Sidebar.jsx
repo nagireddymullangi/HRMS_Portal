@@ -9,7 +9,7 @@ import { FaRupeeSign } from 'react-icons/fa';
 import { FiAlertCircle } from 'react-icons/fi';
 import { HiMegaphone } from 'react-icons/hi2';
 import { FiBook, FiShield } from 'react-icons/fi';
-
+import { FiActivity } from 'react-icons/fi';
 import { FiBarChart2, FiClock, FiTarget } from 'react-icons/fi';
 import { FiHardDrive, FiUserCheck, FiCamera } from 'react-icons/fi';
 import { FiUserPlus, FiBriefcase } from 'react-icons/fi';
@@ -54,6 +54,11 @@ const adminNavLinks = [
     label: 'Payroll',
     icon: FaRupeeSign,
   },
+  { path: '/admin/assign-work',
+    label: 'Assign Work',
+    icon: FiTarget 
+  },
+
   { 
     path: '/admin/offer-letters',
     label: 'Offer Letters',
@@ -151,6 +156,12 @@ const employeeNavLinks = [
     label: 'My Payroll',
     icon: FaRupeeSign,
   },
+
+  { path: '/employee/daily-work', 
+    label: 'My Daily Work', 
+    icon: FiActivity 
+  },
+
   {
     path:'/employee/bank-details',
     label: 'Bank Details',

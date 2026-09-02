@@ -103,6 +103,8 @@ public class SecurityConfig {
              .requestMatchers("/api/analytics/**").hasRole("ADMIN")
              .requestMatchers("/api/ai-insights/chatbot").hasAnyRole("ADMIN","EMPLOYEE")
              .requestMatchers("/api/ai-insights/**").hasRole("ADMIN")
+          // Add to SecurityConfig.java
+             .requestMatchers("/api/daily-work/**").hasAnyRole("ADMIN","EMPLOYEE")
              // All other requests need authentication
              .anyRequest().authenticated()
          )

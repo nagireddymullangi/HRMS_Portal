@@ -54,6 +54,8 @@ import SettlementManagement from './pages/admin/SettlementManagement';
 import ComplianceManagement from './pages/admin/ComplianceManagement';
 import HRAnalytics from './pages/admin/HRAnalytics';
 import AIInsights from './pages/admin/AIInsights';
+import AssignWork from './pages/admin/AssignWork';
+
 
 // Employee Pages
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
@@ -64,6 +66,7 @@ import BankDetails from './pages/employee/BankDetails';
 import FaceCheckIn from './pages/employee/FaceCheckIn';
 import MyLearning from './pages/employee/MyLearning';
 import MyPolicies from './pages/employee/MyPolicies';
+import MyDailyWork from './pages/employee/MyDailyWork';
 
 function App() {
   return (
@@ -115,6 +118,7 @@ function App() {
             <Route path="/admin/compliance" element={<ComplianceManagement />} />
             <Route path="/admin/analytics" element={<HRAnalytics />} />
             <Route path="/admin/ai-insights" element={<AIInsights />} />
+            <Route path="/admin/assign-work" element={<AssignWork />} />
           </Route>
 
           {/* Employee Routes */}
@@ -133,6 +137,7 @@ function App() {
             <Route path="/employee/grievances" element={<MyGrievances />} />
             <Route path="/employee/learning" element={<MyLearning />} />
             <Route path="/employee/policies" element={<MyPolicies />} />
+            <Route path="/employee/daily-work" element={<MyDailyWork />} />
           </Route>
 
           {/* 404 */}

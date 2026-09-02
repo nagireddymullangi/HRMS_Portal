@@ -429,8 +429,8 @@ const MyTimesheet = () => {
             </label>
             <input
               type="number"
-              step="0.25"
-              min="0.25"
+              step="1"
+              min="0"
               max="24"
               {...register('hoursWorked', { required: 'Required' })}
               className={`input-field ${
