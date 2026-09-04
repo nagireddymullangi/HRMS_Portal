@@ -15,6 +15,7 @@ import Loader from '../../components/common/Loader';
 import dailyWorkService from '../../services/dailyWorkService';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/helpers';
+import { formatTime, formatDuration, getElapsedSeconds } from '../../utils/timeHelpers';
 
 const MyDailyWork = () => {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ const MyDailyWork = () => {
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
   const [currentBreakTimer, setCurrentBreakTimer] = useState(0);
+  const [liveTimers, setLiveTimers] = useState({});
 
   useEffect(() => {
     if (user?.employeeId) {
@@ -53,6 +55,25 @@ const MyDailyWork = () => {
       return () => clearInterval(timer);
     }
   }, [dashboard?.currentBreak]);
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    if (dashboard?.todayTasks) {
+      const timers = {};
+      dashboard.todayTasks.forEach((task) => {
+        if (task.status === 'IN_PROGRESS' && task.startedAt) {
+          timers[task.id] = getElapsedSeconds(
+            task.resumedAt || task.startedAt,
+            null,
+            0
+          ) + (task.totalActiveSeconds || 0);
+        }
+      });
+      setLiveTimers(timers);
+    }
+  }, 1000);
+  return () => clearInterval(interval);
+}, [dashboard?.todayTasks]);
 
   const fetchDashboard = async () => {
     try {
@@ -417,9 +438,91 @@ const MyDailyWork = () => {
                         </div>
                       )}
 
+                      {/* ═══ TIME TRACKING SECTION ═══ */}
+{(task.startedAt || task.acceptedAt || task.completedAt) && (
+  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+
+    {/* Accepted Time */}
+    {task.acceptedAt && (
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-center">
+        <p className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">
+          Accepted
+        </p>
+        <p className="text-xs font-bold text-blue-800 mt-0.5">
+          {formatTime(task.acceptedAt)}
+        </p>
+      </div>
+    )}
+
+    {/* Start Time */}
+    {task.startedAt && (
+      <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-2.5 text-center">
+        <p className="text-[10px] font-semibold text-yellow-600 uppercase tracking-wide flex items-center justify-center gap-1">
+          <FiPlay className="h-3 w-3" /> Start
+        </p>
+        <p className="text-xs font-bold text-yellow-800 mt-0.5">
+          {formatTime(task.startedAt)}
+        </p>
+      </div>
+    )}
+
+    {/* Live Timer (while IN_PROGRESS) */}
+    {task.status === 'IN_PROGRESS' && task.startedAt && (
+      <div className="bg-green-50 border border-green-200 rounded-xl p-2.5 text-center animate-pulse">
+        <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide flex items-center justify-center gap-1">
+          <FiClock className="h-3 w-3" /> Live
+        </p>
+        <p className="text-sm font-bold text-green-700 mt-0.5 font-mono">
+          {formatDuration(liveTimers[task.id] || task.currentElapsedSeconds || 0)}
+        </p>
+      </div>
+    )}
+
+    {/* End Time + Total Duration (when COMPLETED) */}
+    {task.status === 'COMPLETED' && task.completedAt && (
+      <>
+        <div className="bg-green-50 border border-green-200 rounded-xl p-2.5 text-center">
+          <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide flex items-center justify-center gap-1">
+            <FiCheckCircle className="h-3 w-3" /> End
+          </p>
+          <p className="text-xs font-bold text-green-800 mt-0.5">
+            {formatTime(task.completedAt)}
+          </p>
+        </div>
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-2.5 text-center col-span-2 sm:col-span-1">
+          <p className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wide">
+            ⏱ Total Time
+          </p>
+          <p className="text-sm font-bold text-indigo-800 mt-0.5 font-mono">
+            {formatDuration(task.currentElapsedSeconds || task.totalActiveSeconds || 0)}
+          </p>
+          {task.actualHours > 0 && (
+            <p className="text-[10px] text-indigo-500 mt-0.5">
+              ({task.actualHours}h)
+            </p>
+          )}
+        </div>
+      </>
+    )}
+
+    {/* Paused Time */}
+    {(task.status === 'ON_HOLD' || task.status === 'BLOCKED') && task.pausedAt && (
+      <div className="bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-center">
+        <p className="text-[10px] font-semibold text-orange-600 uppercase tracking-wide flex items-center justify-center gap-1">
+          <FiPause className="h-3 w-3" /> Paused
+        </p>
+        <p className="text-xs font-bold text-orange-800 mt-0.5">
+          {formatTime(task.pausedAt)}
+        </p>
+      </div>
+    )}
+  </div>
+)}
+
+
                       {/* Meta Info */}
                       <div className="flex items-center gap-4 mt-3
-                                      text-xs text-gray-500">
+                                      text-xs text-gray-500 flex-wrap">
                         {task.estimatedHours && (
                           <span className="flex items-center gap-1">
                             <FiClock /> Est: {task.estimatedHours}h

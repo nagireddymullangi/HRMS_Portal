@@ -7,6 +7,9 @@ import {
   FiUsers, FiTarget, FiAlertCircle, FiClock,
   FiCoffee, FiRefreshCw
 } from 'react-icons/fi';
+import { formatTime, formatDuration, getElapsedSeconds } from '../../utils/timeHelpers';
+
+
 import Layout from '../../components/common/Layout';
 import Modal from '../../components/common/Modal';
 import PageHeader from '../../components/common/PageHeader';
@@ -31,7 +34,7 @@ const AssignWork = () => {
     new Date().toISOString().split('T')[0]);
   const [bulkTasks, setBulkTasks] = useState([{}]);
   const [submitting, setSubmitting] = useState(false);
-
+  const [liveTimers, setLiveTimers] = useState({});
   const { register, handleSubmit, reset, setValue,watch,
           formState: { errors } } = useForm();
 
@@ -40,6 +43,23 @@ const AssignWork = () => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [selectedDate]);
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    const timers = {};
+    assignments.forEach((task) => {
+      if (task.status === 'IN_PROGRESS' && task.startedAt) {
+        timers[task.id] = getElapsedSeconds(
+          task.resumedAt || task.startedAt,
+          null,
+          0
+        ) + (task.totalActiveSeconds || 0);
+      }
+    });
+    setLiveTimers(timers);
+  }, 1000);
+  return () => clearInterval(interval);
+}, [assignments]);
 
   const fetchData = async () => {
     try {
@@ -298,10 +318,10 @@ const AssignWork = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {['Task #', 'Employee', 'Title', 'Priority',
-                    'Progress', 'Status', 'Due', 'Actions'].map(h => (
+                  {['Task #', 'Employee', 'Title', 'Priority', 'Start Time', 'End Time', 'Duration',
+                    'Progress', 'Status', 'Due', 'Actions'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs
-                                          font-semibold text-gray-500 uppercase">
+                                          font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
                   ))}
@@ -309,12 +329,12 @@ const AssignWork = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {assignments.map(task => (
-                  <tr key={task.id} className="hover:bg-gray-50">
+                  <tr key={task.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-xs font-mono text-gray-500">
                       {task.assignmentNumber}
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-sm">{task.employeeName}</p>
+                      <p className="font-medium text-sm text-gray-800">{task.employeeName}</p>
                       <p className="text-xs text-gray-400">
                         {task.employeeCode}
                       </p>
@@ -326,51 +346,140 @@ const AssignWork = () => {
                       </p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2 py-1
+                      <span className={`text-xs font-medium px-2.5 py-1
                                          rounded-full ${
                                            priorityColors[task.priority]}`}>
                         {task.priority}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div className="bg-primary-600 h-2 rounded-full"
-                               style={{ width: `${task.progressPercentage}%` }} />
-                        </div>
-                        <span className="text-xs font-semibold">
-                          {task.progressPercentage}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2 py-1
-                                         rounded-full ${
-                                           statusColors[task.status]}`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {task.dueDate && (
-                        <div>
-                          <p className={task.isOverdue
-                            ? 'text-red-600 font-semibold'
-                            : 'text-gray-600'}>
-                            {formatDate(task.dueDate)}
-                          </p>
-                          {task.dueTime && (
-                            <p className="text-xs text-gray-400">
-                              {task.dueTime}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </td>
+
+                    {/* ✅ START TIME */}
+            <td className="px-4 py-3 whitespace-nowrap">
+              {task.startedAt ? (
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-yellow-700
+                                   flex items-center gap-1">
+                    ▶️ {formatTime(task.startedAt)}
+                  </span>
+                  {task.acceptedAt && (
+                    <span className="text-[10px] text-gray-400 mt-0.5">
+                      Accepted: {formatTime(task.acceptedAt)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-gray-400 italic">Not started</span>
+              )}
+            </td>
+
+            {/* ✅ END TIME */}
+            <td className="px-4 py-3 whitespace-nowrap">
+              {task.completedAt ? (
+                <span className="text-xs font-semibold text-green-700
+                                 flex items-center gap-1">
+                  ✅ {formatTime(task.completedAt)}
+                </span>
+              ) : task.status === 'IN_PROGRESS' ? (
+                <span className="text-xs text-green-600 font-medium
+                                 animate-pulse flex items-center gap-1">
+                  🟢 Running...
+                </span>
+              ) : task.status === 'ON_HOLD' || task.status === 'BLOCKED' ? (
+                <span className="text-xs text-orange-600 font-medium
+                                 flex items-center gap-1">
+                  ⏸️ {task.pausedAt ? formatTime(task.pausedAt) : 'Paused'}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">—</span>
+              )}
+            </td>
+
+            {/* ✅ DURATION */}
+            <td className="px-4 py-3 whitespace-nowrap">
+              {task.status === 'COMPLETED' ? (
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-indigo-700 font-mono">
+                    {formatDuration(
+                      task.currentElapsedSeconds ||
+                      task.totalActiveSeconds || 0
+                    )}
+                  </span>
+                  {task.actualHours > 0 && (
+                    <span className="text-[10px] text-indigo-500">
+                      ({task.actualHours}h)
+                    </span>
+                  )}
+                </div>
+              ) : task.status === 'IN_PROGRESS' ? (
+                <span className="text-sm font-bold text-green-600 font-mono
+                                 animate-pulse">
+                  {formatDuration(
+                    liveTimers[task.id] ||
+                    task.currentElapsedSeconds || 0
+                  )}
+                </span>
+              ) : task.startedAt ? (
+                <span className="text-sm font-mono text-gray-600">
+                  {formatDuration(task.currentElapsedSeconds || 0)}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">—</span>
+              )}
+            </td>
+
+
+                    {/* Progress */}
+            <td className="px-4 py-3 min-w-[100px]">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      task.progressPercentage === 100
+                        ? 'bg-green-500'
+                        : 'bg-primary-600'
+                    }`}
+                    style={{ width: `${task.progressPercentage || 0}%` }}
+                  />
+                </div>
+                <span className="text-xs font-semibold text-gray-600 w-8">
+                  {task.progressPercentage || 0}%
+                </span>
+              </div>
+            </td>
+
+            {/* Status */}
+            <td className="px-4 py-3">
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full
+                  ${statusColors[task.status]}`}
+              >
+                {task.status?.replace('_', ' ')}
+              </span>
+            </td>
+
+            {/* Due */}
+            <td className="px-4 py-3 text-sm whitespace-nowrap">
+              {task.dueDate ? (
+                <div>
+                  <p className={task.isOverdue
+                    ? 'text-red-600 font-semibold text-xs'
+                    : 'text-gray-600 text-xs'}>
+                    {task.dueDate}
+                  </p>
+                  {task.dueTime && (
+                    <p className="text-[10px] text-gray-400">{task.dueTime}</p>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-gray-400">—</span>
+              )}
+            </td>
+
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
                         <button onClick={() => openModal(task)}
                                 className="p-1.5 rounded-lg hover:bg-blue-50
-                                           text-blue-600">
+                                           text-blue-600" title='Edit'>
                           <FiEdit2 className="h-4 w-4" />
                         </button>
                         <button onClick={() => handleDelete(task.id)}

@@ -1,0 +1,669 @@
+
+//service/impl/DailyWorkServiceImpl.java
+package com.hrms.service.impl;
+
+import com.hrms.dto.response.AssignmentResponse;
+import com.hrms.dto.response.BreakSessionResponse;
+import com.hrms.dto.response.DailyWorkDashboard;
+import com.hrms.exception.HrmsAPIException;
+import com.hrms.exception.ResourceNotFoundException;
+import com.hrms.model.*;
+import com.hrms.repository.*;
+import com.hrms.service.DailyWorkService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class DailyWorkServiceImpl implements DailyWorkService {
+
+ private final DailyWorkAssignmentRepository assignmentRepository;
+ private final BreakSessionRepository breakRepository;
+ private final AssignmentCommentRepository commentRepository;
+ private final DailyWorkSummaryRepository summaryRepository;
+ private final EmployeeRepository employeeRepository;
+ private final UserRepository userRepository;
+ private final ProjectRepository projectRepository;
+
+ // ============ ASSIGNMENTS ============
+ @Override
+ @Transactional
+ public AssignmentResponse createAssignment(
+         DailyWorkAssignment assignment, Long assignedBy) {
+
+     assignment.setAssignmentNumber(generateAssignmentNumber());
+     assignment.setAssignedBy(assignedBy);
+     assignment.setStatus(DailyWorkAssignment.Status.ASSIGNED);
+
+     if (assignment.getAssignmentDate() == null) {
+         assignment.setAssignmentDate(LocalDate.now());
+     }
+
+     DailyWorkAssignment saved = assignmentRepository.save(assignment);
+     log.info("Assignment created: {} for employee: {}",
+         saved.getAssignmentNumber(), saved.getEmployee().getId());
+
+     return mapToResponse(saved);
+ }
+
+ @Override
+ @Transactional
+ public List<AssignmentResponse> createBulkAssignments(
+         List<DailyWorkAssignment> assignments, Long assignedBy) {
+     return assignments.stream()
+         .map(a -> createAssignment(a, assignedBy))
+         .collect(Collectors.toList());
+ }
+
+ @Override
+ @Transactional
+ public AssignmentResponse updateAssignment(
+         Long id, DailyWorkAssignment assignment) {
+     DailyWorkAssignment existing = assignmentRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Assignment", "id", id));
+
+     if (existing.getStatus() == DailyWorkAssignment.Status.COMPLETED) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "Cannot edit completed assignment");
+     }
+
+     if (assignment.getTitle() != null)
+         existing.setTitle(assignment.getTitle());
+     if (assignment.getDescription() != null)
+         existing.setDescription(assignment.getDescription());
+     if (assignment.getCategory() != null)
+         existing.setCategory(assignment.getCategory());
+     if (assignment.getPriority() != null)
+         existing.setPriority(assignment.getPriority());
+     if (assignment.getDueDate() != null)
+         existing.setDueDate(assignment.getDueDate());
+     if (assignment.getDueTime() != null)
+         existing.setDueTime(assignment.getDueTime());
+     if (assignment.getEstimatedHours() != null)
+         existing.setEstimatedHours(assignment.getEstimatedHours());
+     if (assignment.getTags() != null)
+         existing.setTags(assignment.getTags());
+     if (assignment.getProjectId() != null)
+         existing.setProjectId(assignment.getProjectId());
+
+     return mapToResponse(assignmentRepository.save(existing));
+ }
+
+ @Override
+ public AssignmentResponse getAssignment(Long id) {
+     return mapToResponse(assignmentRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Assignment", "id", id)));
+ }
+
+ @Override
+ public List<AssignmentResponse> getMyAssignments(Long employeeId) {
+     return assignmentRepository
+             .findByEmployeeIdOrderByAssignmentDateDesc(employeeId)
+             .stream().map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AssignmentResponse> getMyAssignmentsByDate(
+         Long employeeId, LocalDate date) {
+     return assignmentRepository
+             .findByEmployeeIdAndAssignmentDateOrderByPriorityDesc(
+                 employeeId, date)
+             .stream().map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AssignmentResponse> getMyAssignmentsByDateRange(
+         Long employeeId, LocalDate start, LocalDate end) {
+     return assignmentRepository
+             .findByEmployeeIdAndAssignmentDateBetweenOrderByAssignmentDateDesc(
+                 employeeId, start, end)
+             .stream().map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AssignmentResponse> getAllAssignments() {
+     return assignmentRepository.findAll().stream()
+             .map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AssignmentResponse> getAssignmentsByDate(LocalDate date) {
+     return assignmentRepository.findAllByDate(date).stream()
+             .map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<AssignmentResponse> getOverdueAssignments() {
+     return assignmentRepository.findOverdue(LocalDate.now()).stream()
+             .map(this::mapToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public void deleteAssignment(Long id) {
+     assignmentRepository.deleteById(id);
+ }
+
+ // ============ WORKFLOW ============
+ @Override
+ @Transactional
+ public AssignmentResponse acceptAssignment(Long id) {
+     DailyWorkAssignment a = getAssignmentEntity(id);
+     a.setStatus(DailyWorkAssignment.Status.ACCEPTED);
+     return mapToResponse(assignmentRepository.save(a));
+ }
+
+ @Override
+ @Transactional
+ public AssignmentResponse startTask(Long id) {
+     DailyWorkAssignment a = getAssignmentEntity(id);
+     a.setStatus(DailyWorkAssignment.Status.IN_PROGRESS);
+     if (a.getStartedAt() == null) {
+         a.setStartedAt(LocalDateTime.now());
+     }
+     return mapToResponse(assignmentRepository.save(a));
+ }
+
+ @Override
+ @Transactional
+ public AssignmentResponse pauseTask(Long id, String reason) {
+     DailyWorkAssignment a = getAssignmentEntity(id);
+     a.setStatus(DailyWorkAssignment.Status.ON_HOLD);
+     a.setBlockerReason(reason);
+     return mapToResponse(assignmentRepository.save(a));
+ }
+
+ @Override
+ @Transactional
+ public AssignmentResponse blockTask(Long id, String blockerReason) {
+     DailyWorkAssignment a = getAssignmentEntity(id);
+     a.setStatus(DailyWorkAssignment.Status.BLOCKED);
+     a.setBlockerReason(blockerReason);
+     return mapToResponse(assignmentRepository.save(a));
+ }
+
+ @Override
+ @Transactional
+ public AssignmentResponse resumeTask(Long id) {
+     DailyWorkAssignment a = getAssignmentEntity(id);
+     a.setStatus(DailyWorkAssignment.Status.IN_PROGRESS);
+     a.setBlockerReason(null);
+     return mapToResponse(assignmentRepository.save(a));
+ }
+
+ @Override
+ @Transactional
+ public AssignmentResponse completeTask(Long id, String notes) {
+     DailyWorkAssignment a = getAssignmentEntity(id);
+     a.setStatus(DailyWorkAssignment.Status.COMPLETED);
+     a.setCompletionNotes(notes);
+     a.setCompletedAt(LocalDateTime.now());
+     a.setProgressPercentage(100);
+
+     // Calculate actual hours if started
+     if (a.getStartedAt() != null) {
+         long minutes = Duration.between(
+             a.getStartedAt(), LocalDateTime.now()).toMinutes();
+         a.setActualHours(BigDecimal.valueOf(minutes / 60.0)
+             .setScale(2, RoundingMode.HALF_UP));
+     }
+
+     return mapToResponse(assignmentRepository.save(a));
+ }
+
+ @Override
+ @Transactional
+ public AssignmentResponse updateProgress(Long id, Integer percentage) {
+     DailyWorkAssignment a = getAssignmentEntity(id);
+
+     if (percentage < 0 || percentage > 100) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "Progress must be between 0 and 100");
+     }
+
+     a.setProgressPercentage(percentage);
+
+     if (percentage == 100) {
+         a.setStatus(DailyWorkAssignment.Status.COMPLETED);
+         a.setCompletedAt(LocalDateTime.now());
+     } else if (percentage > 0 &&
+             a.getStatus() == DailyWorkAssignment.Status.ASSIGNED) {
+         a.setStatus(DailyWorkAssignment.Status.IN_PROGRESS);
+         if (a.getStartedAt() == null) {
+             a.setStartedAt(LocalDateTime.now());
+         }
+     }
+
+     return mapToResponse(assignmentRepository.save(a));
+ }
+
+ // ============ COMMENTS ============
+ @Override
+ @Transactional
+ public AssignmentComment addComment(Long assignmentId, Long userId,
+                                       String comment, String type) {
+     DailyWorkAssignment assignment = getAssignmentEntity(assignmentId);
+
+     AssignmentComment c = AssignmentComment.builder()
+             .assignment(assignment)
+             .userId(userId)
+             .comment(comment)
+             .commentType(type != null
+                 ? AssignmentComment.CommentType.valueOf(type)
+                 : AssignmentComment.CommentType.GENERAL)
+             .build();
+
+     return commentRepository.save(c);
+ }
+
+ @Override
+ public List<AssignmentComment> getComments(Long assignmentId) {
+     return commentRepository
+             .findByAssignmentIdOrderByCreatedAtDesc(assignmentId);
+ }
+
+ // ============ BREAK MANAGEMENT ============
+ @Override
+ @Transactional
+ public BreakSessionResponse startBreak(Long employeeId, String breakType,
+                                         String reason, String location) {
+     // Check if already on break
+     Optional<BreakSession> active = breakRepository
+             .findByEmployeeIdAndStatus(employeeId, BreakSession.Status.ACTIVE);
+
+     if (active.isPresent()) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "You are already on a break. End current break first.");
+     }
+
+     Employee employee = employeeRepository.findById(employeeId)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Employee", "id", employeeId));
+
+     BreakSession.BreakType type = breakType != null
+         ? BreakSession.BreakType.valueOf(breakType)
+         : BreakSession.BreakType.SHORT_BREAK;
+
+     BreakSession session = BreakSession.builder()
+             .employee(employee)
+             .breakType(type)
+             .startTime(LocalDateTime.now())
+             .maxAllowedMinutes(type.getDefaultMaxMinutes())
+             .reason(reason)
+             .location(location)
+             .status(BreakSession.Status.ACTIVE)
+             .build();
+
+     return mapBreakToResponse(breakRepository.save(session));
+ }
+
+ @Override
+ @Transactional
+ public BreakSessionResponse endBreak(Long sessionId) {
+     BreakSession session = breakRepository.findById(sessionId)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Break Session", "id", sessionId));
+
+     if (session.getStatus() != BreakSession.Status.ACTIVE) {
+         throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
+             "Break session is not active");
+     }
+
+     LocalDateTime endTime = LocalDateTime.now();
+     long duration = Duration.between(session.getStartTime(), endTime).toMinutes();
+
+     session.setEndTime(endTime);
+     session.setDurationMinutes((int) duration);
+     session.setStatus(BreakSession.Status.COMPLETED);
+
+     // Check if exceeded
+     if (session.getMaxAllowedMinutes() != null &&
+         duration > session.getMaxAllowedMinutes()) {
+         session.setIsExceeded(true);
+     }
+
+     return mapBreakToResponse(breakRepository.save(session));
+ }
+
+ @Override
+ public BreakSessionResponse getCurrentBreak(Long employeeId) {
+     return breakRepository
+             .findByEmployeeIdAndStatus(employeeId, BreakSession.Status.ACTIVE)
+             .map(this::mapBreakToResponse)
+             .orElse(null);
+ }
+
+ @Override
+ public List<BreakSessionResponse> getMyBreaks(Long employeeId) {
+     return breakRepository
+             .findByEmployeeIdOrderByStartTimeDesc(employeeId)
+             .stream().map(this::mapBreakToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public List<BreakSessionResponse> getAllActiveBreaks() {
+     return breakRepository.findAllActive().stream()
+             .map(this::mapBreakToResponse)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ @Transactional
+ public BreakSessionResponse forceEndBreak(Long sessionId, String adminNote) {
+     BreakSession session = breakRepository.findById(sessionId)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Break", "id", sessionId));
+
+     LocalDateTime endTime = LocalDateTime.now();
+     long duration = Duration.between(session.getStartTime(), endTime).toMinutes();
+
+     session.setEndTime(endTime);
+     session.setDurationMinutes((int) duration);
+     session.setStatus(BreakSession.Status.FORCE_STOPPED);
+     session.setIsExceeded(true);
+     session.setReason(session.getReason() + " | Admin: " + adminNote);
+
+     return mapBreakToResponse(breakRepository.save(session));
+ }
+
+ // ============ DASHBOARD ============
+ @Override
+ public DailyWorkDashboard getMyDashboard(Long employeeId) {
+     LocalDate today = LocalDate.now();
+     LocalDateTime startOfDay = today.atStartOfDay();
+     LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
+
+     List<DailyWorkAssignment> allTasks = assignmentRepository
+             .findByEmployeeIdAndAssignmentDateOrderByPriorityDesc(
+                 employeeId, today);
+
+     // Upcoming (next 7 days)
+     List<DailyWorkAssignment> upcoming = assignmentRepository
+             .findByEmployeeIdAndAssignmentDateBetweenOrderByAssignmentDateDesc(
+                 employeeId, today.plusDays(1), today.plusDays(7));
+
+     // Status distribution
+     Map<String, Long> statusDist = allTasks.stream()
+             .collect(Collectors.groupingBy(
+                 a -> a.getStatus().name(), Collectors.counting()));
+
+     // Category distribution
+     Map<String, Long> catDist = allTasks.stream()
+             .collect(Collectors.groupingBy(
+                 a -> a.getCategory().name(), Collectors.counting()));
+
+     // Priority distribution
+     Map<String, Long> priorityDist = allTasks.stream()
+             .collect(Collectors.groupingBy(
+                 a -> a.getPriority().name(), Collectors.counting()));
+
+     // Break time today
+     Integer breakMinutes = breakRepository
+             .sumBreakMinutesByEmployeeAndDateRange(
+                 employeeId, startOfDay, endOfDay);
+     if (breakMinutes == null) breakMinutes = 0;
+
+     // Current active break
+     BreakSession currentBreak = breakRepository
+             .findByEmployeeIdAndStatus(employeeId, BreakSession.Status.ACTIVE)
+             .orElse(null);
+
+     long activeBreakMinutes = currentBreak != null
+         ? currentBreak.getCurrentDurationMinutes() : 0;
+
+     // Work minutes = 8*60 - break minutes (simplified)
+     long workMinutes = Math.max(0, 480 - breakMinutes - activeBreakMinutes);
+
+     // Productivity score
+     double productivity = calculateProductivity(allTasks, workMinutes);
+
+     int completed = (int) statusDist.getOrDefault("COMPLETED", 0L).longValue();
+     int inProgress = (int) statusDist.getOrDefault("IN_PROGRESS", 0L).longValue();
+     int pending = (int) statusDist.getOrDefault("ASSIGNED", 0L).longValue();
+     int blocked = (int) statusDist.getOrDefault("BLOCKED", 0L).longValue();
+
+     int overdue = (int) allTasks.stream().filter(DailyWorkAssignment::isOverdue).count();
+
+     return DailyWorkDashboard.builder()
+             .totalTasks(allTasks.size())
+             .completed(completed)
+             .inProgress(inProgress)
+             .pending(pending)
+             .blocked(blocked)
+             .overdue(overdue)
+             .totalWorkMinutes(workMinutes)
+             .totalBreakMinutes(breakMinutes.longValue())
+             .activeBreakMinutes(activeBreakMinutes)
+             .currentBreak(currentBreak != null
+                 ? mapBreakToResponse(currentBreak) : null)
+             .todayTasks(allTasks.stream()
+                 .map(this::mapToResponse)
+                 .collect(Collectors.toList()))
+             .upcomingTasks(upcoming.stream()
+                 .limit(5).map(this::mapToResponse)
+                 .collect(Collectors.toList()))
+             .statusDistribution(statusDist)
+             .categoryDistribution(catDist)
+             .priorityDistribution(priorityDist)
+             .productivityScore(productivity)
+             .build();
+ }
+
+ @Override
+ public Map<String, Object> getTeamDashboard() {
+     Map<String, Object> data = new HashMap<>();
+     LocalDate today = LocalDate.now();
+
+     List<DailyWorkAssignment> todayAssignments = assignmentRepository
+             .findAllByDate(today);
+
+     List<BreakSession> activeBreaks = breakRepository.findAllActive();
+
+     data.put("totalAssignmentsToday", todayAssignments.size());
+     data.put("completedToday", todayAssignments.stream()
+             .filter(a -> a.getStatus() == DailyWorkAssignment.Status.COMPLETED)
+             .count());
+     data.put("inProgress", todayAssignments.stream()
+             .filter(a -> a.getStatus() == DailyWorkAssignment.Status.IN_PROGRESS)
+             .count());
+     data.put("blocked", todayAssignments.stream()
+             .filter(a -> a.getStatus() == DailyWorkAssignment.Status.BLOCKED)
+             .count());
+     data.put("overdue", assignmentRepository.findOverdue(today).size());
+     data.put("employeesOnBreak", activeBreaks.size());
+     data.put("activeBreaks", activeBreaks.stream()
+             .map(this::mapBreakToResponse)
+             .collect(Collectors.toList()));
+
+     // Employees exceeding break time
+     List<Map<String, Object>> exceededBreaks = activeBreaks.stream()
+             .filter(b -> b.getMaxAllowedMinutes() != null &&
+                 b.getCurrentDurationMinutes() > b.getMaxAllowedMinutes())
+             .map(b -> {
+                 Map<String, Object> m = new HashMap<>();
+                 m.put("employeeName", b.getEmployee().getFullName());
+                 m.put("breakType", b.getBreakType().name());
+                 m.put("currentMinutes", b.getCurrentDurationMinutes());
+                 m.put("maxAllowed", b.getMaxAllowedMinutes());
+                 m.put("excessMinutes",
+                     b.getCurrentDurationMinutes() - b.getMaxAllowedMinutes());
+                 return m;
+             })
+             .collect(Collectors.toList());
+     data.put("exceededBreaks", exceededBreaks);
+
+     return data;
+ }
+
+ @Override
+ public Map<String, Object> getEmployeeStats(
+         Long employeeId, LocalDate start, LocalDate end) {
+     Map<String, Object> stats = new HashMap<>();
+
+     List<DailyWorkAssignment> assignments = assignmentRepository
+             .findByEmployeeIdAndAssignmentDateBetweenOrderByAssignmentDateDesc(
+                 employeeId, start, end);
+
+     long completed = assignments.stream()
+             .filter(a -> a.getStatus() == DailyWorkAssignment.Status.COMPLETED)
+             .count();
+
+     double avgProgress = assignments.stream()
+             .filter(a -> a.getProgressPercentage() != null)
+             .mapToInt(DailyWorkAssignment::getProgressPercentage)
+             .average().orElse(0);
+
+     Integer totalBreakMinutes = breakRepository
+             .sumBreakMinutesByEmployeeAndDateRange(
+                 employeeId, start.atStartOfDay(), end.plusDays(1).atStartOfDay());
+
+     stats.put("totalAssignments", assignments.size());
+     stats.put("completedAssignments", completed);
+     stats.put("completionRate", assignments.isEmpty() ? 0
+         : Math.round((completed * 100.0) / assignments.size() * 100.0) / 100.0);
+     stats.put("averageProgress", Math.round(avgProgress * 100.0) / 100.0);
+     stats.put("totalBreakMinutes",
+         totalBreakMinutes != null ? totalBreakMinutes : 0);
+
+     return stats;
+ }
+
+ // ============ HELPERS ============
+ private DailyWorkAssignment getAssignmentEntity(Long id) {
+     return assignmentRepository.findById(id)
+             .orElseThrow(() -> new ResourceNotFoundException(
+                 "Assignment", "id", id));
+ }
+
+ private String generateAssignmentNumber() {
+     long count = assignmentRepository.count() + 1;
+     return String.format("TSK-%d-%06d",
+         LocalDate.now().getYear(), count);
+ }
+
+ private double calculateProductivity(List<DailyWorkAssignment> tasks,
+                                        long workMinutes) {
+     if (tasks.isEmpty()) return 0;
+
+     double completionRate = tasks.stream()
+             .filter(t -> t.getStatus() == DailyWorkAssignment.Status.COMPLETED)
+             .count() * 100.0 / tasks.size();
+
+     double avgProgress = tasks.stream()
+             .filter(t -> t.getProgressPercentage() != null)
+             .mapToInt(DailyWorkAssignment::getProgressPercentage)
+             .average().orElse(0);
+
+     double workUtilization = Math.min(100, (workMinutes * 100.0) / 480);
+
+     return Math.round((completionRate * 0.4 + avgProgress * 0.3
+         + workUtilization * 0.3) * 100.0) / 100.0;
+ }
+
+ private AssignmentResponse mapToResponse(DailyWorkAssignment a) {
+     String assignedByName = "Unknown";
+     try {
+         User user = userRepository.findById(a.getAssignedBy()).orElse(null);
+         if (user != null) {
+             Employee emp = employeeRepository.findByUser_Id(user.getId())
+                 .orElse(null);
+             assignedByName = emp != null ? emp.getFullName() : user.getUsername();
+         }
+     } catch (Exception ignored) {}
+
+     String projectName = null;
+     if (a.getProjectId() != null) {
+         projectName = projectRepository.findById(a.getProjectId())
+                 .map(Project::getName).orElse(null);
+     }
+
+     Long commentCount = (long) commentRepository
+             .findByAssignmentIdOrderByCreatedAtDesc(a.getId()).size();
+
+     return AssignmentResponse.builder()
+             .id(a.getId())
+             .assignmentNumber(a.getAssignmentNumber())
+             .employeeId(a.getEmployee().getId())
+             .employeeName(a.getEmployee().getFullName())
+             .employeeCode(a.getEmployee().getEmployeeId())
+             .assignedBy(a.getAssignedBy())
+             .assignedByName(assignedByName)
+             .title(a.getTitle())
+             .description(a.getDescription())
+             .category(a.getCategory().name())
+             .priority(a.getPriority().name())
+             .status(a.getStatus().name())
+             .assignmentDate(a.getAssignmentDate())
+             .dueDate(a.getDueDate())
+             .dueTime(a.getDueTime())
+             .estimatedHours(a.getEstimatedHours())
+             .actualHours(a.getActualHours())
+             .remainingHours(a.getRemainingHours())
+             .progressPercentage(a.getProgressPercentage())
+             .projectId(a.getProjectId())
+             .projectName(projectName)
+             .tags(a.getTags())
+             .attachments(a.getAttachments())
+             .blockerReason(a.getBlockerReason())
+             .completionNotes(a.getCompletionNotes())
+             .startedAt(a.getStartedAt())
+             .completedAt(a.getCompletedAt())
+             .isOverdue(a.isOverdue())
+             .isRecurring(a.getIsRecurring())
+             .totalComments(commentCount)
+             .createdAt(a.getCreatedAt())
+             .updatedAt(a.getUpdatedAt())
+             
+             .acceptedAt(a.getAcceptedAt())
+             .startedAt(a.getStartedAt())
+             .pausedAt(a.getPausedAt())
+             .resumedAt(a.getResumedAt())
+             .completedAt(a.getCompletedAt())
+             .totalActiveSeconds(a.getTotalActiveSeconds())
+             .totalPauseSeconds(a.getTotalPauseSeconds())
+             .currentElapsedSeconds(a.getCurrentElapsedSeconds())
+             .formattedDuration(a.getFormattedDuration())
+             .pauseCount(a.getPauseCount())
+             .actualHours(a.getActualHours())
+             .build();
+ }
+
+ private BreakSessionResponse mapBreakToResponse(BreakSession b) {
+     return BreakSessionResponse.builder()
+             .id(b.getId())
+             .employeeId(b.getEmployee().getId())
+             .employeeName(b.getEmployee().getFullName())
+             .breakType(b.getBreakType().name())
+             .startTime(b.getStartTime())
+             .endTime(b.getEndTime())
+             .durationMinutes(b.getDurationMinutes())
+             .currentDurationMinutes(b.getCurrentDurationMinutes())
+             .maxAllowedMinutes(b.getMaxAllowedMinutes())
+             .isExceeded(b.getIsExceeded())
+             .reason(b.getReason())
+             .location(b.getLocation())
+             .status(b.getStatus().name())
+             .createdAt(b.getCreatedAt())
+             .build();
+ }
+}

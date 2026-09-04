@@ -1,0 +1,29 @@
+{
+  "conversationId": "dc93dffb-ff66-4a67-b9ee-eb850c1aec09",
+  "title": "Explain the following SpEL Expression with a clear...",
+  "requesterUsername": "nagireddymullangi",
+  "responderUsername": "GitHub Copilot",
+  "turns": [
+    {
+      "message": {
+        "text": "Explain the following SpEL Expression with a clear summary first, followed by a breakdown of the expression with details: \n\nhasAnyRole(\u0027ADMIN\u0027,\u0027EMPLOYEE\u0027)\n\n"
+      },
+      "currentDocument": {
+        "uri": "/hrms-backend/src/main/java/com/hrms/controller/EmployeeController.java"
+      },
+      "references": [],
+      "ignoredSkills": [],
+      "userLanguage": "en",
+      "source": "panel",
+      "model": "Auto",
+      "chatMode": "Agent",
+      "customChatModeId": "Agent",
+      "needToolCallConfirmation": true,
+      "turnId": "f820a860-242b-40b9-870b-c864bac12fe4",
+      "role": "user",
+      "timestamp": "2026-09-03T11:10:27.348710600Z"
+    }
+  ],
+  "creationDate": "2026-09-03T11:10:27.323753100Z",
+  "lastMessageDate": "2026-09-03T11:10:27.323753100Z"
+}
