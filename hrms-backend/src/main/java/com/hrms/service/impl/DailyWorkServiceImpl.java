@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -254,6 +255,9 @@ public class DailyWorkServiceImpl implements DailyWorkService {
     @Override
     public DailyWorkDashboard getMyDashboard(Long empId) {
         LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+        
         List<DailyWorkAssignment> todayTasks = assignmentRepository
                 .findByEmployeeIdAndAssignmentDateOrderByPriorityDesc(empId, today);
                 
@@ -265,20 +269,32 @@ public class DailyWorkServiceImpl implements DailyWorkService {
                 .findByEmployeeIdAndStatus(empId, BreakSession.Status.ACTIVE).orElse(null);
 
         int comp = 0, inProg = 0, pend = 0, block = 0, over = 0;
+        long totalWorkSeconds = 0;
         for (DailyWorkAssignment t : todayTasks) {
             if (t.getStatus() == DailyWorkAssignment.Status.COMPLETED) comp++;
             else if (t.getStatus() == DailyWorkAssignment.Status.IN_PROGRESS) inProg++;
             else if (t.getStatus() == DailyWorkAssignment.Status.BLOCKED) block++;
             else pend++;
             if (t.isOverdue()) over++;
+            totalWorkSeconds += t.getTotalActiveSeconds() != null ? t.getTotalActiveSeconds() : 0;
         }
+        
+        long totalWorkMinutes = totalWorkSeconds / 60;
+        Integer completedBreakMinutes = breakRepository
+        		.sumBreakMinutesByEmployeeAndDateRange(empId, startOfDay, endOfDay);
+        if(completedBreakMinutes == null) completedBreakMinutes = 0;
+        long activeBreakMinutes = currentBreak != null ? currentBreak.getCurrentDurationMinutes() : 0;
+        long totalBreakMinutes = completedBreakMinutes + activeBreakMinutes;
+        //double productivity = calculateProductivity(todayTasks, totalWorkMinutes);
 
         return DailyWorkDashboard.builder()
                 .totalTasks(todayTasks.size())
                 .completed(comp).inProgress(inProg).pending(pend).blocked(block).overdue(over)
+                .totalWorkMinutes(totalWorkMinutes).totalBreakMinutes(totalBreakMinutes)
                 .currentBreak(currentBreak != null ? mapBreak(currentBreak) : null)
                 .todayTasks(todayTasks.stream().map(this::mapToResponse).collect(Collectors.toList()))
                 .upcomingTasks(upcoming.stream().limit(5).map(this::mapToResponse).collect(Collectors.toList()))
+                //.productivityScore(productivity)
                 .build();
     }
 

@@ -62,16 +62,17 @@ const MyDailyWork = () => {
       const timers = {};
       dashboard.todayTasks.forEach((task) => {
         if (task.status === 'IN_PROGRESS' && task.startedAt) {
-          timers[task.id] = getElapsedSeconds(
-            task.resumedAt || task.startedAt,
-            null,
-            0
-          ) + (task.totalActiveSeconds || 0);
+          const startTime = task.resumedAt || task.startedAt;
+          const elapsedSinceStart = Math.floor((new Date() - new Date(startTime)) / 1000);
+          timers[task.id] = (task.totalActiveSeconds || 0) + elapsedSinceStart;
         }
       });
       setLiveTimers(timers);
     }
-  }, 1000);
+    if (dashboard?.currentBreak) {
+      setCurrentBreakTimer(prev => prev + 1);
+    }
+  }, 60000);
   return () => clearInterval(interval);
 }, [dashboard?.todayTasks]);
 
@@ -203,6 +204,14 @@ const MyDailyWork = () => {
       setComments(res.data.data);
     } catch {}
   };
+
+  const formateHourseToHHMM = (hours) => {
+    const totalMiinutes = Math.round(hours * 60);
+    const hrs = Math.floor(totalMiinutes / 60);
+    const mins = totalMiinutes % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  };
+
 
   if (loading) return <Layout><Loader /></Layout>;
 
@@ -337,7 +346,7 @@ const MyDailyWork = () => {
         <div className="card text-center">
           <FiClock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
           <p className="text-2xl font-bold text-blue-600">
-            {Math.floor((dashboard?.totalWorkMinutes || 0) / 60)}h {
+            {Math.floor((dashboard?.totalWorkMinutes || 0) / 60)}h{' '} {
               (dashboard?.totalWorkMinutes || 0) % 60}m
           </p>
           <p className="text-xs text-gray-500 mt-1">Work Time</p>
@@ -498,7 +507,7 @@ const MyDailyWork = () => {
           </p>
           {task.actualHours > 0 && (
             <p className="text-[10px] text-indigo-500 mt-0.5">
-              ({task.actualHours}h)
+              ({formateHourseToHHMM(task.actualHours)}h)
             </p>
           )}
         </div>
@@ -530,7 +539,7 @@ const MyDailyWork = () => {
                         )}
                         {task.actualHours > 0 && (
                           <span className="flex items-center gap-1">
-                            <FiActivity /> Actual: {task.actualHours}h
+                            <FiActivity /> Actual: {formateHourseToHHMM(task.actualHours)}h
                           </span>
                         )}
                         {task.dueDate && (

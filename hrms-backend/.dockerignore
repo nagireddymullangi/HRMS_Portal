@@ -1,0 +1,11 @@
+.git
+.gitignore
+.mvn
+.settings
+.classpath
+.project
+.factorypath
+target
+*.log
+*.jar
+uploads

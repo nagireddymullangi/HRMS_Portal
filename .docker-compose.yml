@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: hrms-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hrms
+      MYSQL_USER: hrmsuser
+      MYSQL_PASSWORD: hrmspassword
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+      interval: 10s
+    networks:
+      - hrms-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./hrms-backend
+      dockerfile: Dockerfile
+    container_name: hrms-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hrms?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      APP_JWT_SECRET: hrmsSecretKeyForJWTTokenGenerationAndValidation2026HRMSPortal
+      APP_JWT_EXPIRATION_MILLISECONDS: "86400000"
+      APP_SEED_ADMIN: "false"
+      APP_MAIL_ENABLED: "false"
+      APP_SLACK_ENABLED: "false"
+      APP_TEAMS_ENABLED: "false"
+      APP_FRONTEND_URL: http://localhost:3000
+      LOGGING_LEVEL_COM_HRMS: INFO
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: INFO
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./hrms-backend/uploads:/app/uploads
+    networks:
+      - hrms-network
+    restart: unless-stopped
+
+  # React Frontend (Nginx)
+  frontend:
+    build:
+      context: ./hrms-frontend
+      dockerfile: Dockerfile
+    container_name: hrms-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - hrms-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  hrms-network:
+    driver: bridge

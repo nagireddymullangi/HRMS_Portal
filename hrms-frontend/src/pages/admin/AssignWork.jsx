@@ -169,6 +169,12 @@ const AssignWork = () => {
   const today = new Date().toISOString().split('T')[0];
   const assignmentDate = watch('assignmentDate');
   const dueDate = watch('dueDate');
+  const formateHourseToHHMM = (hours) => {
+    const totalMiinutes = Math.round(hours * 60);
+    const hrs = Math.floor(totalMiinutes / 60);
+    const mins = totalMiinutes % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  };
 
   return (
     <Layout>
@@ -406,7 +412,7 @@ const AssignWork = () => {
                   </span>
                   {task.actualHours > 0 && (
                     <span className="text-[10px] text-indigo-500">
-                      ({task.actualHours}h)
+                      ({formateHourseToHHMM(task.actualHours)}h)
                     </span>
                   )}
                 </div>
