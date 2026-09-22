@@ -44,7 +44,7 @@ services:
       LOGGING_LEVEL_COM_HRMS: INFO
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: INFO
     ports:
-      - "8080:8080"
+      - "8081:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -52,7 +52,12 @@ services:
       - ./hrms-backend/uploads:/app/uploads
     networks:
       - hrms-network
-    restart: unless-stopped
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "java -version > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # React Frontend (Nginx)
   frontend:
@@ -63,10 +68,11 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - hrms-network
-    restart: unless-stopped
+    restart: on-failure
 
 volumes:
   mysql-data:
