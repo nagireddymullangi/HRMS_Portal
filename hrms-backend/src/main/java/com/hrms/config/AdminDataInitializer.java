@@ -18,7 +18,7 @@ public class AdminDataInitializer {
  private final UserRepository userRepository;
  private final PasswordEncoder passwordEncoder;
 
- @Value("${app.seed-admin:false}")
+ @Value("${app.seed-admin:true}")
  private boolean seedAdmin;
 
  @Bean

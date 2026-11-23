@@ -1287,3 +1287,42 @@
 2026-09-21 10:40:25.366: [INFO] BookmarksLoadDropped droppedNodes=0
 2026-09-21 10:40:25.366: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
 2026-09-21 11:15:06.260: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-24 05:28:45.089: [INFO] CurrentProfilePath: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-09-24 05:28:45.089: [INFO] Profiles total count: 1
+2026-09-24 05:28:45.089: [INFO] Profile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-09-24 05:28:45.089: [INFO] LastUsedProfileDir: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-09-24 05:28:45.089: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-09-24 05:28:45.089: [INFO] OnDoneLoading sync enabled: 0
+2026-09-24 05:28:45.089: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-09-24 05:28:45.089: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-09-24 05:28:45.089: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-24 05:29:54.350: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-26 04:14:50.760: [INFO] CurrentProfilePath: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-09-26 04:14:50.760: [INFO] Profiles total count: 1
+2026-09-26 04:14:50.760: [INFO] Profile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-09-26 04:14:50.760: [INFO] LastUsedProfileDir: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-09-26 04:14:50.760: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-09-26 04:14:50.760: [INFO] OnDoneLoading sync enabled: 0
+2026-09-26 04:14:50.760: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-09-26 04:14:50.760: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-09-26 04:14:50.760: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-26 12:54:12.209: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-11-19 04:05:57.850: [INFO] CurrentProfilePath: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-11-19 04:05:57.850: [INFO] Profiles total count: 1
+2026-11-19 04:05:57.850: [INFO] Profile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-11-19 04:05:57.850: [INFO] LastUsedProfileDir: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-11-19 04:05:57.850: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-11-19 04:05:57.850: [INFO] OnDoneLoading sync enabled: 0
+2026-11-19 04:05:57.850: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-11-19 04:05:57.850: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-11-19 04:05:57.850: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-11-19 08:59:35.548: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-11-23 18:22:29.046: [INFO] CurrentProfilePath: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-11-23 18:22:29.046: [INFO] Profiles total count: 1
+2026-11-23 18:22:29.046: [INFO] Profile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-11-23 18:22:29.046: [INFO] LastUsedProfileDir: C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default
+2026-11-23 18:22:29.046: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=C:\Users\Hi\HRMS-Portal\.metadata\.plugins\org.eclipse.swt\EBWebView\Default lastActive=2026-09-04T04:13:46.653Z
+2026-11-23 18:22:29.046: [INFO] OnDoneLoading sync enabled: 0
+2026-11-23 18:22:29.046: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-11-23 18:22:29.046: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-11-23 18:22:29.046: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1

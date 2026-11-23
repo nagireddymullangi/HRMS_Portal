@@ -1,4 +1,3 @@
-
 //dto/response/PayrollResponse.java
 package com.hrms.dto.response;
 
@@ -16,17 +15,34 @@ public class PayrollResponse {
  private String designation;
  private Integer month;
  private Integer year;
+
+ // Earnings
  private BigDecimal basicSalary;
+ private BigDecimal basicPay;
  private BigDecimal hra;
  private BigDecimal transportAllowance;
  private BigDecimal medicalAllowance;
  private BigDecimal otherAllowances;
  private BigDecimal grossSalary;
+
+ // Employee Deductions
  private BigDecimal pfDeduction;
+ private BigDecimal pfEmployee;
+ private BigDecimal esiDeduction;
+ private BigDecimal esiEmployee;
+ private BigDecimal professionalTax;
  private BigDecimal taxDeduction;
  private BigDecimal otherDeductions;
  private BigDecimal totalDeductions;
  private BigDecimal netSalary;
+
+ // Employer Statutory Contributions & CTC
+ private BigDecimal pfEmployer;
+ private BigDecimal esiEmployer;
+ private BigDecimal totalEmployerContribution;
+ private BigDecimal ctc;
+
+ // Attendance & Status
  private Integer workingDays;
  private Integer presentDays;
  private String status;

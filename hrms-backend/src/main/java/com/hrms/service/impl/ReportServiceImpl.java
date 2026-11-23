@@ -178,9 +178,11 @@ public class ReportServiceImpl implements ReportService {
          Sheet sheet = workbook.createSheet("Payroll_" + month + "_" + year);
          CellStyle headerStyle = createHeaderStyle(workbook);
 
-         String[] headers = {"Emp ID", "Name", "Department", "Basic",
-                             "HRA", "Allowances", "Gross", "PF", "Tax",
-                             "Deductions", "Net Salary", "Status"};
+         String[] headers = {"Emp ID", "Name", "Department", "Basic Pay",
+                             "HRA", "TA", "Medical", "Other Allowances", "Gross Salary",
+                             "Employee PF", "Employee ESI", "Professional Tax", "TDS",
+                             "Total Deductions", "Net Salary",
+                             "Employer PF", "Employer ESI", "Total CTC", "Status"};
 
          Row header = sheet.createRow(0);
          for (int i = 0; i < headers.length; i++) {
@@ -196,23 +198,26 @@ public class ReportServiceImpl implements ReportService {
          for (Payroll p : payrolls) {
              Row row = sheet.createRow(rowIdx++);
              Employee emp = p.getEmployee();
-             row.createCell(0).setCellValue(emp.getEmployeeId());
-             row.createCell(1).setCellValue(emp.getFullName());
-             row.createCell(2).setCellValue(emp.getDepartment() != null ?
+             row.createCell(0).setCellValue(emp != null ? emp.getEmployeeId() : "");
+             row.createCell(1).setCellValue(emp != null ? emp.getFullName() : "");
+             row.createCell(2).setCellValue(emp != null && emp.getDepartment() != null ?
                  emp.getDepartment().getName() : "");
-             row.createCell(3).setCellValue(p.getBasicSalary().doubleValue());
-             row.createCell(4).setCellValue(p.getHra().doubleValue());
-             row.createCell(5).setCellValue(
-                 p.getTransportAllowance().doubleValue() +
-                 p.getMedicalAllowance().doubleValue() +
-                 p.getOtherAllowances().doubleValue());
-             row.createCell(6).setCellValue(p.getGrossSalary().doubleValue());
-             row.createCell(7).setCellValue(p.getPfDeduction().doubleValue());
-             row.createCell(8).setCellValue(p.getTaxDeduction().doubleValue());
-             row.createCell(9).setCellValue(
-                 p.getTotalDeductions().doubleValue());
-             row.createCell(10).setCellValue(p.getNetSalary().doubleValue());
-             row.createCell(11).setCellValue(p.getStatus().name());
+             row.createCell(3).setCellValue(p.getBasicSalary() != null ? p.getBasicSalary().doubleValue() : 0.0);
+             row.createCell(4).setCellValue(p.getHra() != null ? p.getHra().doubleValue() : 0.0);
+             row.createCell(5).setCellValue(p.getTransportAllowance() != null ? p.getTransportAllowance().doubleValue() : 0.0);
+             row.createCell(6).setCellValue(p.getMedicalAllowance() != null ? p.getMedicalAllowance().doubleValue() : 0.0);
+             row.createCell(7).setCellValue(p.getOtherAllowances() != null ? p.getOtherAllowances().doubleValue() : 0.0);
+             row.createCell(8).setCellValue(p.getGrossSalary() != null ? p.getGrossSalary().doubleValue() : 0.0);
+             row.createCell(9).setCellValue(p.getPfDeduction() != null ? p.getPfDeduction().doubleValue() : 0.0);
+             row.createCell(10).setCellValue(p.getEsiDeduction() != null ? p.getEsiDeduction().doubleValue() : 0.0);
+             row.createCell(11).setCellValue(p.getProfessionalTax() != null ? p.getProfessionalTax().doubleValue() : 0.0);
+             row.createCell(12).setCellValue(p.getTaxDeduction() != null ? p.getTaxDeduction().doubleValue() : 0.0);
+             row.createCell(13).setCellValue(p.getTotalDeductions() != null ? p.getTotalDeductions().doubleValue() : 0.0);
+             row.createCell(14).setCellValue(p.getNetSalary() != null ? p.getNetSalary().doubleValue() : 0.0);
+             row.createCell(15).setCellValue(p.getPfEmployer() != null ? p.getPfEmployer().doubleValue() : 0.0);
+             row.createCell(16).setCellValue(p.getEsiEmployer() != null ? p.getEsiEmployer().doubleValue() : 0.0);
+             row.createCell(17).setCellValue(p.getCtc() != null ? p.getCtc().doubleValue() : 0.0);
+             row.createCell(18).setCellValue(p.getStatus() != null ? p.getStatus().name() : "");
          }
 
          // Add totals row
@@ -226,8 +231,8 @@ public class ReportServiceImpl implements ReportService {
          totalLabel.setCellValue("TOTAL");
          totalLabel.setCellStyle(boldStyle);
 
-         Cell netTotal = totalRow.createCell(10);
-         netTotal.setCellFormula("SUM(K2:K" + rowIdx + ")");
+         Cell netTotal = totalRow.createCell(14);
+         netTotal.setCellFormula("SUM(O2:O" + rowIdx + ")");
          netTotal.setCellStyle(boldStyle);
 
          for (int i = 0; i < headers.length; i++) {
