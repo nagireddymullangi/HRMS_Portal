@@ -108,6 +108,8 @@ const getMinJoiningDate = () => {
       reset();
       fetchAll();
     } catch (err) {
+      console.log('Sent data:', data);
+      console.log('Backend error:', err.response?.data);
       toast.error(err.response?.data?.message || 'Operation failed');
     } finally {
       setSubmitting(false);

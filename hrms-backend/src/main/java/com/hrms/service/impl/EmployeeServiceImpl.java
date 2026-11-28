@@ -37,6 +37,12 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeResponse createEmployee(EmployeeRequest request) {
+    	if(request.getUsername() == null || request.getUsername().isBlank()){
+    		throw new HrmsAPIException(HttpStatus.BAD_REQUEST, "Username is required");
+    	}
+    	if(request.getPassword() == null || request.getPassword().isBlank()){
+    		throw new HrmsAPIException(HttpStatus.BAD_REQUEST, "Password is required");
+    	}
         if (employeeRepository.existsByEmail(request.getEmail())) {
             throw new HrmsAPIException(HttpStatus.BAD_REQUEST,
                     "Email already exists");
